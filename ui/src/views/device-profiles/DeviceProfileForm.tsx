@@ -1,13 +1,171 @@
 import React, { Component } from "react";
 
-import { Form, Input, Select, InputNumber, Switch, Row, Col, Button, Tabs } from "antd";
+import { Form, Input, Select, InputNumber, Switch, Row, Col, Button, Tabs, Modal, Spin, Cascader } from "antd";
 import { MinusCircleOutlined, PlusOutlined } from "@ant-design/icons";
 
 import { DeviceProfile, CodecRuntime } from "@chirpstack/chirpstack-api-grpc-web/api/device_profile_pb";
 import { Region, MacVersion, RegParamsRevision } from "@chirpstack/chirpstack-api-grpc-web/common/common_pb";
 import { ListDeviceProfileAdrAlgorithmsResponse } from "@chirpstack/chirpstack-api-grpc-web/api/device_profile_pb";
+import { 
+  ListDeviceProfileTemplatesRequest,
+  ListDeviceProfileTemplatesResponse,
+  GetDeviceProfileTemplateRequest,
+  GetDeviceProfileTemplateResponse,
+  DeviceProfileTemplateListItem,
+  DeviceProfileTemplate,
+} from "@chirpstack/chirpstack-api-grpc-web/api/device_profile_template_pb";
+
+import { getEnumName } from "../helpers";
 import DeviceProfileStore from "../../stores/DeviceProfileStore";
+import DeviceProfileTemplateStore from "../../stores/DeviceProfileTemplateStore";
 import CodeEditor from "../../components/CodeEditor";
+
+
+interface ModalProps {
+  onOk: (dp: DeviceProfileTemplate) => void;
+  onCancel: () => void;
+  visible: boolean;
+}
+
+interface ModalState {
+  templates: DeviceProfileTemplateListItem[];
+  templatesLoaded: boolean;
+  templateId?: string;
+}
+
+interface Option {
+  value: string;
+  label: string;
+  children?: Option[];
+}
+
+class TemplateModal extends Component<ModalProps, ModalState> {
+  constructor(props: ModalProps) {
+    super(props);
+    this.state = {
+      templates: [],
+      templatesLoaded: false,
+    };
+  }
+
+  componentDidUpdate(prevProps: ModalProps) {
+    if (prevProps === this.props) {
+      return;
+    }
+
+    if (this.props.visible) {
+      this.setState({
+        templatesLoaded: false,
+      });
+
+      let req = new ListDeviceProfileTemplatesRequest();
+      req.setLimit(99999);
+
+      DeviceProfileTemplateStore.list(req, (resp: ListDeviceProfileTemplatesResponse) => {
+        this.setState({
+          templatesLoaded: true,
+          templates: resp.getResultList(),
+        });
+      });
+    }
+  }
+
+  onChange = (value: (string | number)[]) => {
+    this.setState({
+      templateId: value.at(-1)! as string,
+    });
+  }
+
+  onOk = () => {
+    if (this.state.templateId) {
+      let req = new GetDeviceProfileTemplateRequest();
+      req.setId(this.state.templateId);
+
+      DeviceProfileTemplateStore.get(req, (resp: GetDeviceProfileTemplateResponse) => {
+        const dp = resp.getDeviceProfileTemplate();
+        if (dp) {
+          this.props.onOk(dp);
+        }
+      });
+    }
+  }
+
+  render() {
+    let options: Option[] = [];
+    let vendor = "";
+    let device = "";
+    let firmware = "";
+    let region = "";
+
+    for (const item of this.state.templates) {
+      if (vendor !== item.getVendor()) {
+        options.push({
+          value: item.getId(),
+          label: item.getVendor(),
+          children: [],
+        });
+
+        vendor = item.getVendor();
+        device = "";
+        firmware = "";
+        region = "";
+      }
+
+      if (device !== item.getName()) {
+        options.at(-1)!.children!.push({
+          value: item.getId(),
+          label: item.getName(),
+          children: [],
+        });
+
+        device = item.getName();
+        firmware = "";
+        region = "";
+      }
+
+      if (firmware !== item.getFirmware()) {
+        options.at(-1)!.children!.at(-1)!.children!.push({
+          value: item.getId(),
+          label: "FW version: " + item.getFirmware(),
+          children: [],
+        });
+
+        firmware = item.getFirmware();
+        region = "";
+      }
+
+      if (region !== getEnumName(Region, item.getRegion())) {
+        options.at(-1)!.children!.at(-1)!.children!.at(-1)!.children!.push({
+          value: item.getId(),
+          label: getEnumName(Region, item.getRegion()),
+          children: []
+        });
+
+        region = getEnumName(Region, item.getRegion());
+      }
+    }
+
+    return(
+      <Modal
+        title="Select device-profile template"
+        visible={this.props.visible}
+        width="80%"
+        bodyStyle={{height: 300}}
+        onOk={this.onOk}
+        onCancel={this.props.onCancel}
+        okButtonProps={{disabled: !!!this.state.templateId}}
+      >
+        {!this.state.templatesLoaded && <div className="spinner"><Spin /></div>}
+        {this.state.templatesLoaded && <Cascader
+          style={{width: "100%"}} 
+          placeholder="Select a device-profile template"
+          options={options}
+          onChange={this.onChange}
+        />}
+      </Modal>
+    );
+  }
+}
 
 interface IProps {
   initialValues: DeviceProfile;
@@ -21,6 +179,7 @@ interface IState {
   supportsClassC: boolean;
   payloadCodecRuntime: CodecRuntime;
   adrAlgorithms: [string, string][];
+  templateModalVisible: boolean;
 }
 
 class DeviceProfileForm extends Component<IProps, IState> {
@@ -34,6 +193,7 @@ class DeviceProfileForm extends Component<IProps, IState> {
       supportsClassC: false,
       payloadCodecRuntime: CodecRuntime.NONE,
       adrAlgorithms: [],
+      templateModalVisible: false,
     };
   }
 
@@ -125,8 +285,61 @@ class DeviceProfileForm extends Component<IProps, IState> {
     });
   };
 
+  showTemplateModal = () => {
+    this.setState({
+      templateModalVisible: true,
+    });
+
+  };
+
+  onTemplateModalOk = (dp: DeviceProfileTemplate) => {
+    this.setState({
+      templateModalVisible: false,
+    });
+
+    this.formRef.current.setFieldsValue({
+      name: dp.getName(),
+      region: dp.getRegion(),
+      macVersion: dp.getMacVersion(),
+      regParamsRevision: dp.getRegParamsRevision(),
+      adrAlgorithmId: dp.getAdrAlgorithmId(),
+      payloadCodecRuntime: dp.getPayloadCodecRuntime(),
+      payloadCodecScript: dp.getPayloadCodecScript(),
+      flushQueueOnActivate: dp.getFlushQueueOnActivate(),
+      uplinkInterval: dp.getUplinkInterval(),
+      deviceStatusReqInterval: dp.getDeviceStatusReqInterval(),
+      supportsOtaa: dp.getSupportsOtaa(),
+      supportsClassB: dp.getSupportsClassB(),
+      supportsClassC: dp.getSupportsClassC(),
+      classBTimeout: dp.getClassBTimeout(),
+      abpRx1Delay: dp.getAbpRx1Delay(),
+      abpRx2Dr: dp.getAbpRx2Dr(),
+      abpRx2Freq: dp.getAbpRx2Freq(),
+      tagsMap: [
+        ['firmware', dp.getFirmware()],
+        ['vendor', dp.getVendor()],
+        ['device', dp.getName()],
+        ['device_profile_template_id', dp.getId()],
+      ],
+    });
+
+    this.setState({
+      supportsOtaa: dp.getSupportsOtaa(),
+      supportsClassB: dp.getSupportsClassB(),
+      supportsClassC: dp.getSupportsClassC(),
+      payloadCodecRuntime: dp.getPayloadCodecRuntime(),
+    });
+  }
+
+  onTemplateModalCancel = () => {
+    this.setState({
+      templateModalVisible: false,
+    });
+  }
+
   render() {
     const adrOptions = this.state.adrAlgorithms.map(v => <Select.Option value={v[0]}>{v[1]}</Select.Option>);
+    const operations = <Button type="primary" onClick={this.showTemplateModal}>Select device-profile template</Button>;
 
     return (
       <Form
@@ -135,7 +348,8 @@ class DeviceProfileForm extends Component<IProps, IState> {
         onFinish={this.onFinish}
         ref={this.formRef}
       >
-        <Tabs>
+        <TemplateModal visible={this.state.templateModalVisible} onOk={this.onTemplateModalOk} onCancel={this.onTemplateModalCancel}/>
+        <Tabs tabBarExtraContent={operations}>
           <Tabs.TabPane tab="General" key="1">
             <Form.Item label="Name" name="name" rules={[{ required: true, message: "Please enter a name!" }]}>
               <Input disabled={this.props.disabled} />
@@ -330,7 +544,7 @@ class DeviceProfileForm extends Component<IProps, IState> {
               <CodeEditor
                 label="Codec functions"
                 name="payloadCodecScript"
-                value={this.props.initialValues.getPayloadCodecScript()}
+                value={this.formRef.current.getFieldValue("payloadCodecScript")}
                 formRef={this.formRef}
                 disabled={this.props.disabled}
               />

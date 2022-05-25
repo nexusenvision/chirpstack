@@ -15,6 +15,7 @@ clap = "2.33"
 
 # Configuration
 serde = { version = "1.0", features = ["derive", "rc"] }
+serde_yaml = "0.8"
 serde_json = "1.0"
 humantime-serde = "1.0"
 toml = "0.5"
