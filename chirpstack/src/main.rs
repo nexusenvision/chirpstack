@@ -120,7 +120,7 @@ async fn main() -> Result<()> {
 
     if let Some(v) = matches.subcommand_matches("import-ttn-lorawan-devices") {
         let dir = v.value_of_lossy("dir").unwrap();
-        cmd::import_ttn_lorawan_devices::run(&Path::new(&*dir))
+        cmd::import_ttn_lorawan_devices::run(Path::new(&*dir))
             .await
             .unwrap();
         process::exit(0);

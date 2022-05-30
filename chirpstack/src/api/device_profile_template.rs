@@ -46,7 +46,7 @@ impl DeviceProfileTemplateService for DeviceProfileTemplate {
             name: req_dp.name.clone(),
             description: req_dp.description.clone(),
             vendor: req_dp.vendor.clone(),
-            firmware: req_dp.vendor.clone(),
+            firmware: req_dp.firmware.clone(),
             region: req_dp.region().from_proto(),
             mac_version: req_dp.mac_version().from_proto(),
             reg_params_revision: req_dp.reg_params_revision().from_proto(),
@@ -254,5 +254,156 @@ impl DeviceProfileTemplateService for DeviceProfileTemplate {
                 })
                 .collect(),
         }))
+    }
+}
+
+#[cfg(test)]
+pub mod test {
+    use super::*;
+    use crate::api::auth::validator::RequestValidator;
+    use crate::api::auth::AuthID;
+    use crate::storage::user;
+    use crate::test;
+    use chirpstack_api::common;
+    use uuid::Uuid;
+
+    #[tokio::test]
+    async fn test_device_profile_template() {
+        let _guard = test::prepare().await;
+
+        // setup admin user
+        let u = user::User {
+            is_admin: true,
+            is_active: true,
+            email: "admin@admin".into(),
+            email_verified: true,
+            ..Default::default()
+        };
+        let u = user::create(u).await.unwrap();
+
+        // setup the api
+        let service = DeviceProfileTemplate::new(RequestValidator::new());
+
+        // create
+        let create_req = get_request(
+            &u.id,
+            api::CreateDeviceProfileTemplateRequest {
+                device_profile_template: Some(api::DeviceProfileTemplate {
+                    id: "test-id".into(),
+                    name: "test-template".into(),
+                    vendor: "Test Vendor".into(),
+                    firmware: "1.2.3".into(),
+                    region: common::Region::Eu868.into(),
+                    mac_version: common::MacVersion::Lorawan103.into(),
+                    reg_params_revision: common::RegParamsRevision::A.into(),
+                    adr_algorithm_id: "default".into(),
+                    ..Default::default()
+                }),
+            },
+        );
+        let _ = service.create(create_req).await.unwrap();
+
+        // get
+        let get_req = get_request(
+            &u.id,
+            api::GetDeviceProfileTemplateRequest {
+                id: "test-id".into(),
+            },
+        );
+        let get_resp = service.get(get_req).await.unwrap();
+        assert_eq!(
+            Some(api::DeviceProfileTemplate {
+                id: "test-id".into(),
+                name: "test-template".into(),
+                vendor: "Test Vendor".into(),
+                firmware: "1.2.3".into(),
+                region: common::Region::Eu868.into(),
+                mac_version: common::MacVersion::Lorawan103.into(),
+                reg_params_revision: common::RegParamsRevision::A.into(),
+                adr_algorithm_id: "default".into(),
+                ..Default::default()
+            }),
+            get_resp.get_ref().device_profile_template
+        );
+
+        // update
+        let update_req = get_request(
+            &u.id,
+            api::UpdateDeviceProfileTemplateRequest {
+                device_profile_template: Some(api::DeviceProfileTemplate {
+                    id: "test-id".into(),
+                    name: "test-template-updated".into(),
+                    vendor: "Test Vendor".into(),
+                    firmware: "1.2.3".into(),
+                    region: common::Region::Eu868.into(),
+                    mac_version: common::MacVersion::Lorawan103.into(),
+                    reg_params_revision: common::RegParamsRevision::A.into(),
+                    adr_algorithm_id: "default".into(),
+                    ..Default::default()
+                }),
+            },
+        );
+        let _ = service.update(update_req).await.unwrap();
+
+        // get
+        let get_req = get_request(
+            &u.id,
+            api::GetDeviceProfileTemplateRequest {
+                id: "test-id".into(),
+            },
+        );
+        let get_resp = service.get(get_req).await.unwrap();
+        assert_eq!(
+            Some(api::DeviceProfileTemplate {
+                id: "test-id".into(),
+                name: "test-template-updated".into(),
+                vendor: "Test Vendor".into(),
+                firmware: "1.2.3".into(),
+                region: common::Region::Eu868.into(),
+                mac_version: common::MacVersion::Lorawan103.into(),
+                reg_params_revision: common::RegParamsRevision::A.into(),
+                adr_algorithm_id: "default".into(),
+                ..Default::default()
+            }),
+            get_resp.get_ref().device_profile_template
+        );
+
+        // list
+        let list_req = get_request(
+            &u.id,
+            api::ListDeviceProfileTemplatesRequest {
+                limit: 10,
+                offset: 0,
+                ..Default::default()
+            },
+        );
+        let list_resp = service.list(list_req).await.unwrap();
+        let list_resp = list_resp.get_ref();
+        assert_eq!(1, list_resp.total_count);
+        assert_eq!(1, list_resp.result.len());
+        assert_eq!("test-id".to_string(), list_resp.result[0].id);
+
+        // delete
+        let del_req = get_request(
+            &u.id,
+            api::DeleteDeviceProfileTemplateRequest {
+                id: "test-id".into(),
+            },
+        );
+        let _ = service.delete(del_req).await.unwrap();
+        let del_req = get_request(
+            &u.id,
+            api::DeleteDeviceProfileTemplateRequest {
+                id: "test-id".into(),
+            },
+        );
+        let del_resp = service.delete(del_req).await;
+        assert!(del_resp.is_err());
+    }
+
+    fn get_request<T>(user_id: &Uuid, req: T) -> Request<T> {
+        let mut req = Request::new(req);
+        req.extensions_mut().insert(AuthID::User(user_id.clone()));
+        req
     }
 }

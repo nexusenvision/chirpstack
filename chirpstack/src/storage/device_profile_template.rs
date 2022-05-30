@@ -4,6 +4,7 @@ use anyhow::Result;
 use chrono::{DateTime, Utc};
 use diesel::dsl;
 use diesel::prelude::*;
+use regex::Regex;
 use tokio::task;
 use tracing::info;
 
@@ -50,9 +51,25 @@ pub struct DeviceProfileTemplate {
 
 impl DeviceProfileTemplate {
     fn validate(&self) -> Result<(), Error> {
+        let id_regex = Regex::new(r"^[\w-]+$").unwrap();
+        if !id_regex.is_match(&self.id) {
+            return Err(Error::Validation(
+                "id can only contain alphanumeric chars or dashes".into(),
+            ));
+        }
+
         if self.name.is_empty() {
             return Err(Error::Validation("name is not set".into()));
         }
+
+        if self.vendor.is_empty() {
+            return Err(Error::Validation("vendor is not set".into()));
+        }
+
+        if self.firmware.is_empty() {
+            return Err(Error::Validation("firmware is not set".into()));
+        }
+
         Ok(())
     }
 }
@@ -249,7 +266,7 @@ pub async fn delete(id: &str) -> Result<(), Error> {
                 diesel::delete(device_profile_template::dsl::device_profile_template.find(&id))
                     .execute(&c)?;
             if ra == 0 {
-                return Err(error::Error::NotFound(id.clone()));
+                return Err(error::Error::NotFound(id));
             }
             Ok(())
         }
@@ -321,8 +338,10 @@ pub mod test {
     async fn test_device_profile_test() {
         let _guard = test::prepare().await;
         let dp = DeviceProfileTemplate {
-            id: "test_dp".into(),
+            id: "test-dp".into(),
             name: "test-template".into(),
+            vendor: "Test Vendor".into(),
+            firmware: "1.2.3".into(),
             ..Default::default()
         };
 

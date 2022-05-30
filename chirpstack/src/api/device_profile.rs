@@ -47,6 +47,7 @@ impl DeviceProfileService for DeviceProfile {
         let mut dp = device_profile::DeviceProfile {
             tenant_id,
             name: req_dp.name.clone(),
+            description: req_dp.description.clone(),
             region: req_dp.region().from_proto(),
             mac_version: req_dp.mac_version().from_proto(),
             reg_params_revision: req_dp.reg_params_revision().from_proto(),
@@ -100,6 +101,7 @@ impl DeviceProfileService for DeviceProfile {
                 id: dp.id.to_string(),
                 tenant_id: dp.tenant_id.to_string(),
                 name: dp.name,
+                description: dp.description,
                 region: dp.region.to_proto().into(),
                 mac_version: dp.mac_version.to_proto().into(),
                 reg_params_revision: dp.reg_params_revision.to_proto().into(),
@@ -151,6 +153,7 @@ impl DeviceProfileService for DeviceProfile {
         let _ = device_profile::update(device_profile::DeviceProfile {
             id: dp_id,
             name: req_dp.name.clone(),
+            description: req_dp.description.clone(),
             region: req_dp.region().from_proto(),
             mac_version: req_dp.mac_version().from_proto(),
             reg_params_revision: req_dp.reg_params_revision().from_proto(),

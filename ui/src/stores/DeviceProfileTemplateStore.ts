@@ -1,6 +1,5 @@
 import { notification } from "antd";
 import { EventEmitter } from "events";
-import * as google_protobuf_empty_pb from "google-protobuf/google/protobuf/empty_pb";
 import { DeviceProfileTemplateServiceClient } from "@chirpstack/chirpstack-api-grpc-web/api/device_profile_template_grpc_web_pb";
 import {
   CreateDeviceProfileTemplateRequest,
@@ -14,7 +13,6 @@ import {
 
 import SessionStore from "./SessionStore";
 import { HandleError } from "./helpers";
-
 
 class DeviceProfileTemplateStore extends EventEmitter {
   client: DeviceProfileTemplateServiceClient;

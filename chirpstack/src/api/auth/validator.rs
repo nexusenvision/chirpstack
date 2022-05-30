@@ -3136,8 +3136,10 @@ pub mod test {
         let api_key_tenant = api_key::test::create_api_key(false, true).await;
 
         let dp = device_profile_template::create(device_profile_template::DeviceProfileTemplate {
-            id: "test_dp".to_string(),
+            id: "test-dp".to_string(),
             name: "test-dp".to_string(),
+            vendor: "Test Vendor".to_string(),
+            firmware: "1.2.3".to_string(),
             ..Default::default()
         })
         .await

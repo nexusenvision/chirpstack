@@ -138,7 +138,7 @@ pub async fn run(dir: &Path) -> Result<()> {
             let device_yml = vendor_dir.join(format!("{}.yaml", device_id));
             info!(path = ?device_yml, "Reading device file");
             let dev: Device = serde_yaml::from_reader(File::open(&device_yml)?)?;
-            import_device(&vendor_dir, &vendor, device_id, &dev).await?;
+            import_device(&vendor_dir, vendor, device_id, &dev).await?;
         }
     }
 
@@ -152,6 +152,7 @@ async fn import_device(
     device: &Device,
 ) -> Result<()> {
     info!(vendor_id = %vendor.id, device_id = %device_id, "Importing device");
+    let id_regex = regex::Regex::new(r"[^\w-]+").unwrap();
 
     for fw in &device.firmware_versions {
         for (region, profile) in &fw.profiles {
@@ -221,13 +222,19 @@ async fn import_device(
             };
 
             for region in regions {
+                let id = format!(
+                    "{}-{}-{}-{}-{}",
+                    vendor.id, device_id, fw.version, region, profile.id
+                );
+                let id = id_regex.replace_all(&id, "-").to_string();
+
                 let dp = device_profile_template::DeviceProfileTemplate {
-                    id: format!(
-                        "{}_{}_{}_{}_{}",
-                        vendor.id, device_id, fw.version, region, profile.id
-                    ),
+                    id,
                     name: truncate(&device.name, 100).to_string(),
-                    description: device.description.clone(),
+                    description: format!(
+                        "{}\n\nSource: https://github.com/TheThingsNetwork/lorawan-devices",
+                        device.description
+                    ),
                     vendor: vendor.name.clone(),
                     firmware: fw.version.clone(),
                     region,
