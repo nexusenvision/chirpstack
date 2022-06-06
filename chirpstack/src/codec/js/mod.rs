@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::time::SystemTime;
 
 use anyhow::Result;
+use chrono::{DateTime, Utc};
 use rquickjs::IntoJs;
 
 use super::convert;
@@ -12,6 +13,7 @@ mod vendor_buffer;
 mod vendor_ieee754;
 
 pub async fn decode(
+    recv_time: DateTime<Utc>,
     f_port: u8,
     variables: &HashMap<String, String>,
     decode_config: &str,
@@ -58,9 +60,10 @@ pub async fn decode(
         let buff: rquickjs::Function = buff.get("Buffer")?;
 
         let input = rquickjs::Object::new(ctx)?;
-        input.set("fPort", f_port.into_js(ctx)?)?;
-        input.set("variables", variables.into_js(ctx)?)?;
         input.set("bytes", b.into_js(ctx)?)?;
+        input.set("fPort", f_port.into_js(ctx)?)?;
+        input.set("recvTime", recv_time.into_js(ctx)?)?;
+        input.set("variables", variables.into_js(ctx)?)?;
 
         let globals = ctx.globals();
         globals.set("chirpstack_input", input)?;
@@ -175,6 +178,7 @@ pub async fn encode(
 #[cfg(test)]
 pub mod test {
     use super::*;
+    use chrono::TimeZone;
 
     #[tokio::test]
     pub async fn test_decode_timeout() {
@@ -188,12 +192,14 @@ pub mod test {
         .to_string();
 
         let vars: HashMap<String, String> = HashMap::new();
-        let out = decode(10, &vars, &decoder, &[0x01, 0x02, 0x03]).await;
+        let out = decode(Utc::now(), 10, &vars, &decoder, &[0x01, 0x02, 0x03]).await;
         assert!(out.is_err());
     }
 
     #[tokio::test]
     pub async fn test_decode() {
+        let recv_time = Utc.ymd(2014, 7, 8).and_hms(9, 10, 11);
+
         let decoder = r#"
             function decodeUplink(input) {
                 var buff = new Buffer(input.bytes);
@@ -203,7 +209,8 @@ pub mod test {
                         f_port: input.fPort,
                         variables: input.variables,
                         data_hex: buff.toString('hex'),
-                        data: input.bytes
+                        data: input.bytes,
+                        recv_time: input.recvTime.toString()
                     }
                 };
             }
@@ -213,7 +220,7 @@ pub mod test {
         let mut vars: HashMap<String, String> = HashMap::new();
         vars.insert("foo".into(), "bar".into());
 
-        let out = decode(10, &vars, &decoder, &[0x01, 0x02, 0x03])
+        let out = decode(recv_time, 10, &vars, &decoder, &[0x01, 0x02, 0x03])
             .await
             .unwrap();
 
@@ -268,6 +275,14 @@ pub mod test {
                                     },
                                 ],
                             },
+                        )),
+                    },
+                ),
+                (
+                    "recv_time".to_string(),
+                    pbjson_types::Value {
+                        kind: Some(pbjson_types::value::Kind::StringValue(
+                            "Tue Jul 08 2014 09:10:11 GMT+0000".to_string(),
                         )),
                     },
                 ),

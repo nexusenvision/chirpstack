@@ -90,7 +90,7 @@ paho-mqtt = { version = "0.9", features = ["vendored-ssl"] }
 hex = "0.4"
 
 # Codecs
-rquickjs = { version = "0.1.5", features = ["bindgen", "loader", "array-buffer"], path = "/rquickjs" }
+rquickjs = { version = "0.1.5", features = ["bindgen", "loader", "array-buffer", "chrono"], path = "/rquickjs" }
 
 # Misc
 lazy_static = "1.4"

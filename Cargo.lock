@@ -2994,6 +2994,7 @@ dependencies = [
 name = "rquickjs-core"
 version = "0.1.5"
 dependencies = [
+ "chrono",
  "relative-path",
  "rquickjs-sys",
 ]
