@@ -192,6 +192,7 @@ interface IState {
   payloadCodecRuntime: CodecRuntime;
   adrAlgorithms: [string, string][];
   templateModalVisible: boolean;
+  tabActive: string;
 }
 
 class DeviceProfileForm extends Component<IProps, IState> {
@@ -206,6 +207,7 @@ class DeviceProfileForm extends Component<IProps, IState> {
       payloadCodecRuntime: CodecRuntime.NONE,
       adrAlgorithms: [],
       templateModalVisible: false,
+      tabActive: "1",
     };
   }
 
@@ -231,8 +233,15 @@ class DeviceProfileForm extends Component<IProps, IState> {
     });
   }
 
+  onTabChange = (activeKey: string) => {
+    this.setState({
+      tabActive: activeKey,
+    });
+  }
+
   onFinish = (values: DeviceProfile.AsObject) => {
     const v = Object.assign(this.props.initialValues.toObject(), values);
+
     let dp = new DeviceProfile();
     dp.setId(v.id);
     dp.setTenantId(v.tenantId);
@@ -270,6 +279,7 @@ class DeviceProfileForm extends Component<IProps, IState> {
     for (const elm of v.tagsMap) {
       dp.getTagsMap().set(elm[0], elm[1]);
     }
+
 
     this.props.onFinish(dp);
   };
@@ -336,12 +346,49 @@ class DeviceProfileForm extends Component<IProps, IState> {
       ],
     });
 
+    const tabActive = this.state.tabActive;
+
     this.setState({
       supportsOtaa: dp.getSupportsOtaa(),
       supportsClassB: dp.getSupportsClassB(),
       supportsClassC: dp.getSupportsClassC(),
       payloadCodecRuntime: dp.getPayloadCodecRuntime(),
+    }, () => {
+      // This is a workaround as without rendering the TabPane (e.g. the user
+      // does not click through the different tabs), setFieldsValue does not
+      // actually update the fields. For example if selecting a template with
+      // a codec script and immediately click the save button, no codec script
+      // is passed to the onFinish function. This seems to be with every field
+      // that is not actually rendered before clicking the Save button.
+      this.setState({
+        tabActive: "1",
+      }, () => {
+        this.setState({
+          tabActive: "2",
+        }, () => {
+          this.setState({
+            tabActive: "3",
+          }, () => {
+            this.setState({
+              tabActive: "4",
+            }, () => {
+              this.setState({
+                tabActive: "5",
+              }, () => {
+                this.setState({
+                  tabActive: "6",
+                }, () => {
+                  this.setState({
+                    tabActive: tabActive,
+                  });
+                });
+              });
+            });
+          });
+        });
+      });
     });
+
   };
 
   onTemplateModalCancel = () => {
@@ -370,7 +417,7 @@ class DeviceProfileForm extends Component<IProps, IState> {
           onOk={this.onTemplateModalOk}
           onCancel={this.onTemplateModalCancel}
         />
-        <Tabs tabBarExtraContent={operations}>
+        <Tabs tabBarExtraContent={operations} activeKey={this.state.tabActive} onChange={this.onTabChange}>
           <Tabs.TabPane tab="General" key="1">
             <Form.Item label="Name" name="name" rules={[{ required: true, message: "Please enter a name!" }]}>
               <Input disabled={this.props.disabled} />
