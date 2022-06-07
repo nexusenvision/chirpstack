@@ -6,6 +6,7 @@ import { notification } from "antd";
 import { Button, Tabs, Space, Card, Row, Form, Input, InputNumber, Checkbox, Popconfirm } from "antd";
 import { ColumnsType } from "antd/es/table";
 import { RedoOutlined, DeleteOutlined } from "@ant-design/icons";
+import {Buffer} from "buffer";
 
 import {
   Device,
@@ -135,11 +136,11 @@ class DeviceQueue extends Component<IProps, IState> {
     item.setConfirmed(values.confirmed);
 
     if (values.hex !== undefined) {
-      item.setData(Buffer.from(values.hex, "hex"));
+      item.setData(new Uint8Array(Buffer.from(values.hex, "hex")));
     }
 
     if (values.base64 !== undefined) {
-      item.setData(Buffer.from(values.base64, "base64"));
+      item.setData(new Uint8Array(Buffer.from(values.base64, "base64")));
     }
 
     if (values.json !== undefined) {
