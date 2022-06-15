@@ -4,7 +4,7 @@ import { Form, Input, Select, InputNumber, Switch, Row, Col, Button, Tabs } from
 import { MinusCircleOutlined, PlusOutlined } from "@ant-design/icons";
 
 import { DeviceProfileTemplate } from "@chirpstack/chirpstack-api-grpc-web/api/device_profile_template_pb";
-import { CodecRuntime } from "@chirpstack/chirpstack-api-grpc-web/api/device_profile_pb";
+import { CodecRuntime, Measurement, MeasurementKind } from "@chirpstack/chirpstack-api-grpc-web/api/device_profile_pb";
 import { Region, MacVersion, RegParamsRevision } from "@chirpstack/chirpstack-api-grpc-web/common/common_pb";
 import { ListDeviceProfileAdrAlgorithmsResponse } from "@chirpstack/chirpstack-api-grpc-web/api/device_profile_pb";
 
@@ -100,6 +100,14 @@ class DeviceProfileTemplateForm extends Component<IProps, IState> {
     // tags
     for (const elm of v.tagsMap) {
       dp.getTagsMap().set(elm[0], elm[1]);
+    }
+
+    // measurements
+    for (const elm of v.measurementsMap) {
+      let m = new Measurement();
+      m.setKind(elm[1].kind);
+      m.setName(elm[1].name);
+      dp.getMeasurementsMap().set(elm[0], m);
     }
 
     this.props.onFinish(dp);
@@ -404,6 +412,66 @@ class DeviceProfileTemplateForm extends Component<IProps, IState> {
                 </>
               )}
             </Form.List>
+          </Tabs.TabPane>
+          <Tabs.TabPane tab="Measurements" key="7">
+              <Form.List name="measurementsMap">
+                {(fields, { add, remove }) => (
+                  <>
+                    {fields.map(({ key, name, ...restField }) => (
+                      <Row gutter={24}>
+                        <Col span={6}>
+                          <Form.Item
+                            {...restField}
+                            name={[name, 0]}
+                            fieldKey={[name, 0]}
+                            rules={[{ required: true, message: "Please enter a key!" }]}
+                          >
+                            <Input placeholder="Key" />
+                          </Form.Item>
+                        </Col>
+                        <Col span={6}>
+                          <Form.Item
+                            {...restField}
+                            name={[name, 1, "kind"]}
+                            fieldKey={[name, 1, "kind"]}
+                            rules={[{ required: true, message: "Please select a kind!" }]}
+                          >
+                            <Select>
+                              <Select.Option value={MeasurementKind.UNKNOWN}>Unknown / unset</Select.Option>
+                              <Select.Option value={MeasurementKind.COUNTER}>Counter</Select.Option>
+                              <Select.Option value={MeasurementKind.GAUGE}>Gauge</Select.Option>
+                              <Select.Option value={MeasurementKind.STATE}>State</Select.Option>
+                            </Select>
+                          </Form.Item>
+                        </Col>
+                        <Col span={10}>
+                          <Form.Item
+                            {...restField}
+                            name={[name, 1, "name"]}
+                            fieldKey={[name, 1, "name"]}
+                            rules={[{ required: true, message: "Please enter a description!" }]}
+                          >
+                            <Input placeholder="Name" />
+                          </Form.Item>
+                        </Col>
+                        <Col span={2}>
+                          <MinusCircleOutlined onClick={() => remove(name)} />
+                        </Col>
+                      </Row>
+                    ))}
+                    <Form.Item>
+                      <Button
+                        type="dashed"
+                        onClick={() => add()}
+                        block
+                        icon={<PlusOutlined />}
+                      >
+                        Add measurement
+                      </Button>
+                    </Form.Item>
+                  </>
+                )}
+              </Form.List>
           </Tabs.TabPane>
         </Tabs>
         <Form.Item>

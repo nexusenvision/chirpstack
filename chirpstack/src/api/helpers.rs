@@ -1,6 +1,7 @@
 use chrono::{DateTime, Utc};
 
 use crate::codec::Codec;
+use crate::storage::fields::MeasurementKind;
 use chirpstack_api::{api, common};
 use lrwn::region::{CommonName, MacVersion, Revision};
 
@@ -136,6 +137,28 @@ impl FromProto<Codec> for api::CodecRuntime {
             api::CodecRuntime::None => Codec::NONE,
             api::CodecRuntime::CayenneLpp => Codec::CAYENNE_LPP,
             api::CodecRuntime::Js => Codec::JS,
+        }
+    }
+}
+
+impl ToProto<api::MeasurementKind> for MeasurementKind {
+    fn to_proto(self) -> api::MeasurementKind {
+        match self {
+            MeasurementKind::UNKNOWN => api::MeasurementKind::Unknown,
+            MeasurementKind::COUNTER => api::MeasurementKind::Counter,
+            MeasurementKind::GAUGE => api::MeasurementKind::Gauge,
+            MeasurementKind::STATE => api::MeasurementKind::State,
+        }
+    }
+}
+
+impl FromProto<MeasurementKind> for api::MeasurementKind {
+    fn from_proto(self) -> MeasurementKind {
+        match self {
+            api::MeasurementKind::Unknown => MeasurementKind::UNKNOWN,
+            api::MeasurementKind::Counter => MeasurementKind::COUNTER,
+            api::MeasurementKind::Gauge => MeasurementKind::GAUGE,
+            api::MeasurementKind::State => MeasurementKind::STATE,
         }
     }
 }

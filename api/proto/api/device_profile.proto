@@ -22,6 +22,20 @@ enum CodecRuntime {
     JS = 2;
 }
 
+enum MeasurementKind {
+    // Unknown (in which case it is not tracked).
+    UNKNOWN = 0;
+
+    // Incrementing counters which are not reset on each reporting.
+    COUNTER = 1;
+
+    // E.g. a temperature value.
+    GAUGE = 2;
+
+    // E.g. a firmware version, true / false value.
+    STATE = 3;
+}
+
 // DeviceProfileService is the service providing API methods for managing device-profiles.
 service DeviceProfileService {
     // Create the given device-profile.
@@ -129,6 +143,18 @@ message DeviceProfile {
 
     // User defined tags.
     map<string, string> tags = 25;
+
+    // Measurements.
+    // If defined, ChirpStack will visualize these metrics in the web-interface.
+    map<string, Measurement> measurements = 27;
+}
+
+message Measurement {
+    // Name (user defined).
+    string name = 2;
+
+    // Kind.
+    MeasurementKind kind = 3;
 }
 
 message DeviceProfileListItem {

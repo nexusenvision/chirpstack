@@ -3,7 +3,7 @@ import React, { Component } from "react";
 import { Form, Input, Select, InputNumber, Switch, Row, Col, Button, Tabs, Modal, Spin, Cascader } from "antd";
 import { MinusCircleOutlined, PlusOutlined } from "@ant-design/icons";
 
-import { DeviceProfile, CodecRuntime } from "@chirpstack/chirpstack-api-grpc-web/api/device_profile_pb";
+import { DeviceProfile, CodecRuntime, Measurement, MeasurementKind } from "@chirpstack/chirpstack-api-grpc-web/api/device_profile_pb";
 import { Region, MacVersion, RegParamsRevision } from "@chirpstack/chirpstack-api-grpc-web/common/common_pb";
 import { ListDeviceProfileAdrAlgorithmsResponse } from "@chirpstack/chirpstack-api-grpc-web/api/device_profile_pb";
 import {
@@ -280,6 +280,14 @@ class DeviceProfileForm extends Component<IProps, IState> {
       dp.getTagsMap().set(elm[0], elm[1]);
     }
 
+    // measurements
+    for (const elm of v.measurementsMap) {
+      let m = new Measurement();
+      m.setKind(elm[1].kind);
+      m.setName(elm[1].name);
+      dp.getMeasurementsMap().set(elm[0], m);
+    }
+
     this.props.onFinish(dp);
   };
 
@@ -318,6 +326,8 @@ class DeviceProfileForm extends Component<IProps, IState> {
       templateModalVisible: false,
     });
 
+    console.log(dp.toObject().tagsMap);
+
     this.formRef.current.setFieldsValue({
       name: dp.getName(),
       description: dp.getDescription(),
@@ -339,12 +349,8 @@ class DeviceProfileForm extends Component<IProps, IState> {
       abpRx2Dr: dp.getAbpRx2Dr(),
       abpRx2Freq: dp.getAbpRx2Freq(),
       abpRx1DrOffset: dp.getAbpRx1DrOffset(),
-      tagsMap: [
-        ["firmware", dp.getFirmware()],
-        ["vendor", dp.getVendor()],
-        ["device", dp.getName()],
-        ["device_profile_template_id", dp.getId()],
-      ],
+      tagsMap: dp.toObject().tagsMap,
+      measurementsMap: dp.toObject().measurementsMap,
     });
 
     const tabActive = this.state.tabActive;
@@ -394,7 +400,12 @@ class DeviceProfileForm extends Component<IProps, IState> {
                               },
                               () => {
                                 this.setState({
-                                  tabActive: tabActive,
+                                  tabActive: "7",
+                                },
+                                () => {
+                                  this.setState({
+                                    tabActive: tabActive,
+                                  });
                                 });
                               },
                             );
@@ -687,6 +698,67 @@ class DeviceProfileForm extends Component<IProps, IState> {
                 </>
               )}
             </Form.List>
+          </Tabs.TabPane>
+          <Tabs.TabPane tab="Measurements" key="7">
+              <Form.List name="measurementsMap">
+                {(fields, { add, remove }) => (
+                  <>
+                    {fields.map(({ key, name, ...restField }) => (
+                      <Row gutter={24}>
+                        <Col span={6}>
+                          <Form.Item
+                            {...restField}
+                            name={[name, 0]}
+                            fieldKey={[name, 0]}
+                            rules={[{ required: true, message: "Please enter a key!" }]}
+                          >
+                            <Input placeholder="Key" disabled={this.props.disabled} />
+                          </Form.Item>
+                        </Col>
+                        <Col span={6}>
+                          <Form.Item
+                            {...restField}
+                            name={[name, 1, "kind"]}
+                            fieldKey={[name, 1, "kind"]}
+                            rules={[{ required: true, message: "Please select a kind!" }]}
+                          >
+                            <Select disabled={this.props.disabled}>
+                              <Select.Option value={MeasurementKind.UNKNOWN}>Unknown / unset</Select.Option>
+                              <Select.Option value={MeasurementKind.COUNTER}>Counter</Select.Option>
+                              <Select.Option value={MeasurementKind.GAUGE}>Gauge</Select.Option>
+                              <Select.Option value={MeasurementKind.STATE}>State</Select.Option>
+                            </Select>
+                          </Form.Item>
+                        </Col>
+                        <Col span={10}>
+                          <Form.Item
+                            {...restField}
+                            name={[name, 1, "name"]}
+                            fieldKey={[name, 1, "name"]}
+                            rules={[{ required: true, message: "Please enter a description!" }]}
+                          >
+                            <Input placeholder="Name" disabled={this.props.disabled} />
+                          </Form.Item>
+                        </Col>
+                        <Col span={2}>
+                          <MinusCircleOutlined onClick={() => remove(name)} />
+                        </Col>
+                      </Row>
+                    ))}
+                    <Form.Item>
+                      <Button
+                        disabled={this.props.disabled}
+                        type="dashed"
+                        onClick={() => add()}
+                        block
+                        icon={<PlusOutlined />}
+                      >
+                        Add measurement
+                      </Button>
+                    </Form.Item>
+                  </>
+                )}
+              </Form.List>
           </Tabs.TabPane>
         </Tabs>
         <Form.Item>
