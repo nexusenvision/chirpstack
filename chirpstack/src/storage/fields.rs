@@ -66,6 +66,20 @@ impl Measurements {
     }
 }
 
+impl Deref for Measurements {
+    type Target = HashMap<String, Measurement>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for Measurements {
+    fn deref_mut(&mut self) -> &mut HashMap<String, Measurement> {
+        &mut self.0
+    }
+}
+
 impl deserialize::FromSql<Jsonb, Pg> for Measurements {
     fn from_sql(bytes: Option<&[u8]>) -> deserialize::Result<Self> {
         let value = <serde_json::Value as deserialize::FromSql<Jsonb, Pg>>::from_sql(bytes)?;

@@ -8,8 +8,8 @@ use super::error::Error;
 use super::{filter_rx_info_by_tenant_id, helpers, UplinkFrameSet};
 use crate::storage::error::Error as StorageError;
 use crate::storage::{
-    application, device, device_gateway, device_profile, device_queue, device_session, metrics,
-    tenant,
+    application, device, device_gateway, device_profile, device_queue, device_session, fields,
+    metrics, tenant,
 };
 use crate::{codec, config, downlink, framelog, integration, maccommand};
 use chirpstack_api::{api, common, integration as integration_pb, internal};
@@ -621,6 +621,30 @@ impl Data {
                 None
             }
         };
+
+        let data_measurement_keys = match &pl.object {
+            None => vec![],
+            Some(v) => codec::get_data_keys(v),
+        };
+        let mut measurements = dp.measurements.clone();
+        let mut update_dp_measurements = false;
+
+        for key in data_measurement_keys {
+            if !&measurements.contains_key(&key) {
+                update_dp_measurements = true;
+                measurements.insert(
+                    key.clone(),
+                    fields::Measurement {
+                        kind: fields::MeasurementKind::UNKNOWN,
+                        name: "".to_string(),
+                    },
+                );
+            }
+        }
+
+        if update_dp_measurements {
+            device_profile::set_measurements(dp.id, &measurements).await?;
+        }
 
         integration::uplink_event(&app.id, &dev.variables, &pl).await?;
 

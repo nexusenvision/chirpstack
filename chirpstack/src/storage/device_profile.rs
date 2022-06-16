@@ -217,6 +217,22 @@ pub async fn update(dp: DeviceProfile) -> Result<DeviceProfile, Error> {
     Ok(dp)
 }
 
+pub async fn set_measurements(id: Uuid, m: &fields::Measurements) -> Result<DeviceProfile, Error> {
+    let dp = task::spawn_blocking({
+        let m = m.clone();
+        move || -> Result<DeviceProfile, Error> {
+            let c = get_db_conn()?;
+            diesel::update(device_profile::dsl::device_profile.find(&id))
+                .set(device_profile::measurements.eq(m))
+                .get_result(&c)
+                .map_err(|e| Error::from_diesel(e, id.to_string()))
+        }
+    })
+    .await??;
+    info!(id = %id, "Device-profile measurements updated");
+    Ok(dp)
+}
+
 pub async fn delete(id: &Uuid) -> Result<(), Error> {
     task::spawn_blocking({
         let id = *id;
