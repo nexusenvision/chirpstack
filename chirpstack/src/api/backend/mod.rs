@@ -44,7 +44,7 @@ pub async fn handle_request(mut body: impl warp::Buf) -> http::Response<hyper::B
     let mut b: Vec<u8> = vec![];
 
     while body.has_remaining() {
-        b.extend_from_slice(&body.chunk());
+        b.extend_from_slice(body.chunk());
         let cnt = body.chunk().len();
         body.advance(cnt);
     }
@@ -119,10 +119,10 @@ async fn handle_pr_start_req_join(
 
     let ufs = UplinkFrameSet {
         uplink_set_id: Uuid::new_v4(),
-        dr: dr,
+        dr,
         ch: helpers::get_uplink_ch(&region_name, tx_info.frequency, dr)?,
         phy_payload: phy,
-        tx_info: tx_info,
+        tx_info,
         rx_info_set: rx_info,
         gateway_private_map: HashMap::new(),
         gateway_tenant_id_map: HashMap::new(),
@@ -151,10 +151,10 @@ async fn handle_pr_start_req_data(
 
     let ufs = UplinkFrameSet {
         uplink_set_id: Uuid::new_v4(),
-        dr: dr,
+        dr,
         ch: helpers::get_uplink_ch(&region_name, tx_info.frequency, dr)?,
         phy_payload: phy,
-        tx_info: tx_info,
+        tx_info,
         rx_info_set: rx_info,
         gateway_private_map: HashMap::new(),
         gateway_tenant_id_map: HashMap::new(),
@@ -204,8 +204,8 @@ async fn handle_pr_start_req_data(
         } else {
             Some(pr_lifetime.as_secs() as usize)
         },
-        f_nwk_s_int_key: f_nwk_s_int_key,
-        nwk_s_key: nwk_s_key,
+        f_nwk_s_int_key,
+        nwk_s_key,
         f_cnt_up: Some(ds.f_cnt_up),
         ..Default::default()
     };
@@ -236,8 +236,8 @@ async fn handle_xmit_data_req(b: &[u8]) -> Result<http::Response<hyper::Body>> {
     };
 
     if let Some(ul_meta_data) = &pl.ul_meta_data {
-        let rx_info = roaming::ul_meta_data_to_rx_info(&ul_meta_data)?;
-        let tx_info = roaming::ul_meta_data_to_tx_info(&ul_meta_data)?;
+        let rx_info = roaming::ul_meta_data_to_rx_info(ul_meta_data)?;
+        let tx_info = roaming::ul_meta_data_to_tx_info(ul_meta_data)?;
         let region_common_name = CommonName::from_str(&ul_meta_data.rf_region)?;
         let region_name = region::get_region_name(region_common_name)?;
         let dr = ul_meta_data.data_rate.unwrap_or_default();
@@ -245,10 +245,10 @@ async fn handle_xmit_data_req(b: &[u8]) -> Result<http::Response<hyper::Body>> {
 
         let ufs = UplinkFrameSet {
             uplink_set_id: Uuid::new_v4(),
-            dr: dr,
+            dr,
             ch: helpers::get_uplink_ch(&region_name, tx_info.frequency, dr)?,
             phy_payload: phy,
-            tx_info: tx_info,
+            tx_info,
             rx_info_set: rx_info,
             gateway_private_map: HashMap::new(),
             gateway_tenant_id_map: HashMap::new(),
@@ -289,14 +289,14 @@ async fn handle_async_ans(bp: &BasePayload, b: &[u8]) -> Result<http::Response<h
                 .cmd("XADD")
                 .arg(&key)
                 .arg("MAXLEN")
-                .arg(1 as i64)
+                .arg(1_i64)
                 .arg("*")
                 .arg("pl")
                 .arg(&b)
                 .ignore()
                 .cmd("EXPIRE")
                 .arg(&key)
-                .arg(30 as i64)
+                .arg(30_i64)
                 .ignore()
                 .query(&mut *c)?;
 

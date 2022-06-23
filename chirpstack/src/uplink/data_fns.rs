@@ -115,7 +115,7 @@ impl Data {
                         .uplink_frame_set
                         .region_common_name
                         .to_string()
-                        .replace("_", "-"),
+                        .replace('_', "-"),
                     gw_cnt: Some(self.uplink_frame_set.rx_info_set.len()),
                     gw_info: roaming::rx_info_to_gw_info(&self.uplink_frame_set.rx_info_set)?,
                     ..Default::default()
@@ -169,7 +169,7 @@ impl Data {
                     .uplink_frame_set
                     .region_common_name
                     .to_string()
-                    .replace("_", "-"),
+                    .replace('_', "-"),
                 gw_cnt: Some(self.uplink_frame_set.rx_info_set.len()),
                 gw_info: roaming::rx_info_to_gw_info(&self.uplink_frame_set.rx_info_set)?,
                 ..Default::default()

@@ -121,7 +121,7 @@ impl Data {
                 frequency: (self.dl_meta_data.dl_freq_2.unwrap() * 1_000_000.0) as u32,
                 board: rx_info.board,
                 antenna: rx_info.antenna,
-                context: rx_info.context.clone(),
+                context: rx_info.context,
                 timing: Some(gw::Timing {
                     parameters: Some(gw::timing::Parameters::Delay(gw::DelayTimingInfo {
                         delay: Some(pbjson_types::Duration {

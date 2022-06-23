@@ -149,8 +149,7 @@ impl JoinRequest {
                     }
 
                     info!(dev_eui = %jr.dev_eui, join_eui = %jr.join_eui, "Unknown device, trying passive-roaming activation");
-                    join_fns::JoinRequest::start_pr(self.uplink_frame_set.clone(), jr.clone())
-                        .await?;
+                    join_fns::JoinRequest::start_pr(self.uplink_frame_set.clone(), *jr).await?;
                     return Err(anyhow::Error::new(Error::Abort));
                 } else {
                     return Err(anyhow::Error::new(e));

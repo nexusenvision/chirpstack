@@ -732,8 +732,8 @@ impl JoinRequest {
             } else {
                 Some(pr_lifetime.as_secs() as usize)
             },
-            f_nwk_s_int_key: f_nwk_s_int_key,
-            nwk_s_key: nwk_s_key,
+            f_nwk_s_int_key,
+            nwk_s_key,
             f_cnt_up: Some(0),
             dl_meta_data: Some(backend::DLMetaData {
                 dev_eui: ds.dev_eui.clone(),

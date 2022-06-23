@@ -29,8 +29,7 @@ pub fn setup() -> Result<()> {
         let server = if s.server.is_empty() {
             format!(
                 "https://{}{}",
-                s.net_id.to_string(),
-                conf.roaming.resolve_net_id_domain_suffix,
+                s.net_id, conf.roaming.resolve_net_id_domain_suffix,
             )
         } else {
             s.server.clone()
@@ -47,7 +46,7 @@ pub fn setup() -> Result<()> {
         let c = Client::new(ClientConfig {
             sender_id: conf.network.net_id.to_string(),
             receiver_id: s.net_id.to_string(),
-            server: server,
+            server,
             use_target_role_suffix: s.use_target_role_suffix,
             ca_cert: s.ca_cert.clone(),
             tls_cert: s.tls_cert.clone(),
@@ -85,8 +84,7 @@ pub fn get(net_id: &NetID) -> Result<Arc<Client>> {
         let server = if conf.roaming.default.server.is_empty() {
             format!(
                 "https://{}{}",
-                net_id.to_string(),
-                conf.roaming.resolve_net_id_domain_suffix,
+                net_id, conf.roaming.resolve_net_id_domain_suffix,
             )
         } else {
             conf.roaming.default.server.clone()
@@ -95,7 +93,7 @@ pub fn get(net_id: &NetID) -> Result<Arc<Client>> {
         let c = Client::new(ClientConfig {
             sender_id: conf.network.net_id.to_string(),
             receiver_id: net_id.to_string(),
-            server: server,
+            server,
             use_target_role_suffix: conf.roaming.default.use_target_role_suffix,
             ca_cert: conf.roaming.default.ca_cert.clone(),
             tls_cert: conf.roaming.default.tls_cert.clone(),
@@ -163,7 +161,7 @@ pub fn is_roaming_dev_addr(dev_addr: DevAddr) -> bool {
         return false;
     }
 
-    for net_id in vec![
+    for net_id in &[
         // Configured NetID.
         conf.network.net_id,
         // Test NetIDs. For roaming it is expected that non-testing NetIDs will be used. These are
@@ -173,7 +171,7 @@ pub fn is_roaming_dev_addr(dev_addr: DevAddr) -> bool {
         NetID::from_be_bytes([0, 0, 0]),
         NetID::from_be_bytes([0, 0, 1]),
     ] {
-        if dev_addr.is_net_id(net_id) {
+        if dev_addr.is_net_id(*net_id) {
             return false;
         }
     }
@@ -202,21 +200,15 @@ pub fn rx_info_to_gw_info(rx_info_set: &[gw::UplinkRxInfo]) -> Result<Vec<GWInfo
 
         out.push(GWInfoElement {
             id: gw_id.to_be_bytes()[4..8].to_vec(),
-            fine_recv_time: match &rx_info.fine_time_since_gps_epoch {
-                Some(v) => Some(v.nanos as usize),
-                None => None,
-            },
+            fine_recv_time: rx_info
+                .fine_time_since_gps_epoch
+                .as_ref()
+                .map(|v| v.nanos as usize),
             rf_region: "".to_string(),
             rssi: Some(rx_info.rssi as isize),
             snr: Some(rx_info.snr),
-            lat: match &rx_info.location {
-                Some(v) => Some(v.latitude),
-                None => None,
-            },
-            lon: match &rx_info.location {
-                Some(v) => Some(v.longitude),
-                None => None,
-            },
+            lat: rx_info.location.as_ref().map(|v| v.latitude),
+            lon: rx_info.location.as_ref().map(|v| v.longitude),
             ul_token: rx_info.encode_to_vec(),
             dl_allowed: Some(true),
         });

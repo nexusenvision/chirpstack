@@ -31,7 +31,7 @@ pub fn wrap(label: &str, key: AES128Key) -> Result<KeyEnvelope> {
 
     let conf = config::get();
     for kek in &conf.keks {
-        if kek.label == label.to_string() {
+        if kek.label == *label {
             return KeyEnvelope::new(label, Some(&kek.kek.to_bytes()), &key.to_bytes());
         }
     }
