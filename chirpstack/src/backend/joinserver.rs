@@ -55,3 +55,9 @@ pub fn get(join_eui: &EUI64) -> Result<Arc<Client>> {
         })?
         .clone())
 }
+
+#[cfg(test)]
+pub fn reset() {
+    let mut clients_w = CLIENTS.write().unwrap();
+    *clients_w = HashMap::new();
+}
