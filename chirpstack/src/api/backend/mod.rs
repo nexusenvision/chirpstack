@@ -13,7 +13,7 @@ use warp::{http::StatusCode, Filter, Reply};
 
 use crate::backend::{keywrap, roaming};
 use crate::downlink::data_fns;
-use crate::storage::{device_session, get_redis_conn, redis_key};
+use crate::storage::{device_session, error::Error as StorageError, get_redis_conn, redis_key};
 use crate::uplink::{data_sns, helpers, join_sns, RoamingMetaData, UplinkFrameSet};
 use crate::{config, region};
 use backend::{BasePayload, MessageType};
@@ -67,13 +67,22 @@ pub async fn handle_request(mut body: impl warp::Buf) -> http::Response<hyper::B
 
     let resp = match bp.message_type {
         // Async responses
-        MessageType::JoinAns => handle_async_ans(&bp, &b).await,
-        MessageType::RejoinAns => handle_async_ans(&bp, &b).await,
-        MessageType::AppSKeyAns => handle_async_ans(&bp, &b).await,
-        MessageType::PRStartAns => handle_async_ans(&bp, &b).await,
-        MessageType::PRStopAns => handle_async_ans(&bp, &b).await,
-        MessageType::HomeNSAns => handle_async_ans(&bp, &b).await,
-        MessageType::XmitDataAns => handle_async_ans(&bp, &b).await,
+        MessageType::JoinAns
+        | MessageType::RejoinAns
+        | MessageType::AppSKeyAns
+        | MessageType::PRStartAns
+        | MessageType::PRStopAns
+        | MessageType::HomeNSAns
+        | MessageType::XmitDataAns => {
+            return match handle_async_ans(&bp, &b).await {
+                Ok(v) => v,
+                Err(e) => warp::reply::with_status(
+                    format!("Error: {:?}", e),
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                )
+                .into_response(),
+            };
+        }
         // Roaming types
         MessageType::PRStartReq => handle_pr_start_req(sender_id, &b).await,
         MessageType::PRStopReq => handle_pr_stop_req(&b).await,
@@ -89,10 +98,24 @@ pub async fn handle_request(mut body: impl warp::Buf) -> http::Response<hyper::B
         Ok(v) => v,
         Err(e) => {
             error!(error = %e, "Error handling request");
-            warp::reply::with_status(format!("Error: {:?}", e), StatusCode::INTERNAL_SERVER_ERROR)
-                .into_response()
+            let msg = format!("{}", e);
+            let pl = bp.to_base_payload_result(err_to_result_code(e), &msg);
+            warp::reply::json(&pl).into_response()
         }
     }
+}
+
+fn err_to_result_code(e: anyhow::Error) -> backend::ResultCode {
+    if let Some(e) = e.downcast_ref::<StorageError>() {
+        return match e {
+            StorageError::NotFound(_) => backend::ResultCode::UnknownDevAddr,
+            StorageError::InvalidMIC | StorageError::InvalidDevNonce => {
+                backend::ResultCode::MICFailed
+            }
+            _ => backend::ResultCode::Other,
+        };
+    }
+    backend::ResultCode::Other
 }
 
 async fn handle_pr_start_req(sender_id: NetID, b: &[u8]) -> Result<http::Response<hyper::Body>> {

@@ -399,3 +399,111 @@ async fn test_sns_uplink() {
     fns_xmit_data_req_mock.assert();
     fns_xmit_data_req_mock.delete();
 }
+
+#[tokio::test]
+async fn test_sns_dev_not_found() {
+    let _guard = test::prepare().await;
+    let fns_mock = MockServer::start();
+
+    let mut conf = (*config::get()).clone();
+
+    // Set NetID.
+    conf.network.net_id = NetID::from_str("000505").unwrap();
+
+    // Set roaming agreement.
+    conf.roaming.servers.push(config::RoamingServer {
+        net_id: NetID::from_str("000202").unwrap(),
+        server: fns_mock.url("/"),
+        ..Default::default()
+    });
+
+    config::set(conf);
+    joinserver::setup().unwrap();
+    roaming::setup().unwrap();
+
+    let mut dev_addr = lrwn::DevAddr::from_be_bytes([0, 0, 0, 0]);
+    dev_addr.set_addr_prefix(&lrwn::NetID::from_str("000505").unwrap());
+
+    let data_phy = lrwn::PhyPayload {
+        mhdr: lrwn::MHDR {
+            m_type: lrwn::MType::UnconfirmedDataUp,
+            major: lrwn::Major::LoRaWANR1,
+        },
+        payload: lrwn::Payload::MACPayload(lrwn::MACPayload {
+            fhdr: lrwn::FHDR {
+                devaddr: dev_addr,
+                f_ctrl: Default::default(),
+                f_cnt: 8,
+                f_opts: lrwn::MACCommandSet::new(vec![]),
+            },
+            f_port: None,
+            frm_payload: None,
+        }),
+        mic: Some([1, 2, 3, 4]),
+    };
+
+    let recv_time = Utc::now();
+
+    let mut rx_info = gw::UplinkRxInfo {
+        gateway_id: "0302030405060708".to_string(),
+        time: Some(recv_time.into()),
+        ..Default::default()
+    };
+    rx_info.set_metadata_string("region_name", "eu868");
+    rx_info.set_metadata_string("region_common_name", "EU868");
+
+    let mut tx_info = gw::UplinkTxInfo {
+        frequency: 868100000,
+        ..Default::default()
+    };
+    uplink::helpers::set_uplink_modulation("eu868", &mut tx_info, 0).unwrap();
+
+    let pr_start_req = backend::PRStartReqPayload {
+        base: backend::BasePayload {
+            sender_id: "000202".to_string(),
+            receiver_id: "000505".to_string(),
+            message_type: backend::MessageType::PRStartReq,
+            transaction_id: 1234,
+            ..Default::default()
+        },
+        phy_payload: data_phy.to_vec().unwrap(),
+        ul_meta_data: backend::ULMetaData {
+            ul_freq: Some(868.1),
+            data_rate: Some(0),
+            recv_time: recv_time,
+            rf_region: "EU868".to_string(),
+            gw_cnt: Some(1),
+            gw_info: roaming::rx_info_to_gw_info(&[rx_info.clone()]).unwrap(),
+            ..Default::default()
+        },
+    };
+
+    let resp =
+        backend_api::handle_request(Bytes::from(serde_json::to_string(&pr_start_req).unwrap()))
+            .await;
+    let resp_b = hyper::body::to_bytes(resp.into_body()).await.unwrap();
+
+    let pr_start_ans: backend::PRStartAnsPayload = serde_json::from_slice(&resp_b).unwrap();
+
+    assert_eq!(
+        backend::PRStartAnsPayload {
+            base: backend::BasePayloadResult {
+                base: backend::BasePayload {
+                    sender_id: "000505".to_string(),
+                    receiver_id: "000202".to_string(),
+                    message_type: backend::MessageType::PRStartAns,
+                    transaction_id: 1234,
+                    ..Default::default()
+                },
+                result: backend::ResultPayload {
+                    result_code: backend::ResultCode::UnknownDevAddr,
+                    description: format!("Object does not exist (id: {})", dev_addr),
+                    ..Default::default()
+                },
+                ..Default::default()
+            },
+            ..Default::default()
+        },
+        pr_start_ans
+    );
+}
