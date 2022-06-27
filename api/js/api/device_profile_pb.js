@@ -3462,8 +3462,9 @@ proto.api.CodecRuntime = {
 proto.api.MeasurementKind = {
   UNKNOWN: 0,
   COUNTER: 1,
-  GAUGE: 2,
-  STATE: 3
+  ABSOLUTE: 2,
+  GAUGE: 3,
+  STRING: 4
 };
 
 goog.object.extend(exports, proto.api);

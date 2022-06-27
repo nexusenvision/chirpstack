@@ -469,8 +469,9 @@ export const CodecRuntime: CodecRuntimeMap;
 export interface MeasurementKindMap {
   UNKNOWN: 0;
   COUNTER: 1;
-  GAUGE: 2;
-  STATE: 3;
+  ABSOLUTE: 2;
+  GAUGE: 3;
+  STRING: 4;
 }
 
 export const MeasurementKind: MeasurementKindMap;

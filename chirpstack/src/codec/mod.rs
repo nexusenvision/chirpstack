@@ -96,6 +96,7 @@ pub async fn struct_to_binary(
     })
 }
 
+/*
 pub fn get_data_keys(s: &pbjson_types::Struct) -> Vec<String> {
     let mut out: Vec<String> = Vec::new();
 
@@ -132,4 +133,46 @@ fn _get_data_keys(prefix: &str, v: &pbjson_types::Value) -> Vec<String> {
             }
         },
     }
+}
+*/
+
+pub fn get_measurements(s: &pbjson_types::Struct) -> HashMap<String, pbjson_types::value::Kind> {
+    let mut out: HashMap<String, pbjson_types::value::Kind> = HashMap::new();
+
+    for (k, v) in &s.fields {
+        out.extend(_get_measurements(k, v));
+    }
+
+    out
+}
+
+fn _get_measurements(
+    prefix: &str,
+    v: &pbjson_types::Value,
+) -> HashMap<String, pbjson_types::value::Kind> {
+    let mut out: HashMap<String, pbjson_types::value::Kind> = HashMap::new();
+
+    match &v.kind {
+        None => {}
+        Some(v) => match v {
+            pbjson_types::value::Kind::NullValue(_) => {}
+            pbjson_types::value::Kind::NumberValue(_)
+            | pbjson_types::value::Kind::StringValue(_)
+            | pbjson_types::value::Kind::BoolValue(_) => {
+                out.insert(prefix.to_string(), v.clone());
+            }
+            pbjson_types::value::Kind::StructValue(v) => {
+                for (k, v) in &v.fields {
+                    out.extend(_get_measurements(&format!("{}_{}", prefix, k), v));
+                }
+            }
+            pbjson_types::value::Kind::ListValue(v) => {
+                for (i, v) in v.values.iter().enumerate() {
+                    out.extend(_get_measurements(&format!("{}_{}", prefix, i), v));
+                }
+            }
+        },
+    }
+
+    out
 }

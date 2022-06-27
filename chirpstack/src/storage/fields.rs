@@ -109,8 +109,10 @@ pub enum MeasurementKind {
     UNKNOWN,
     // Incrementing counters which are not reset on each reporting.
     COUNTER,
+    // Counters that do get reset upon reading.
+    ABSOLUTE,
     // E.g. a temperature value.
     GAUGE,
     // E.g. a firmware version, true / false value.
-    STATE,
+    STRING,
 }

@@ -2,7 +2,8 @@ use std::str::FromStr;
 use std::time::SystemTime;
 
 use bigdecimal::ToPrimitive;
-use chrono::{DateTime, Local};
+use chrono::{DateTime, Local, Utc};
+use itertools::Itertools;
 use rand::RngCore;
 use tonic::{Request, Response, Status};
 use uuid::Uuid;
@@ -13,7 +14,7 @@ use lrwn::{AES128Key, DevAddr, EUI64};
 
 use super::auth::validator;
 use super::error::ToStatus;
-use super::helpers::{self, ToProto};
+use super::helpers::{self, FromProto, ToProto};
 use crate::storage::error::Error;
 use crate::storage::{
     device, device_keys, device_profile, device_queue, device_session, fields, metrics,
@@ -563,6 +564,108 @@ impl DeviceService for Device {
         }))
     }
 
+    async fn get_metrics(
+        &self,
+        request: Request<api::GetDeviceMetricsRequest>,
+    ) -> Result<Response<api::GetDeviceMetricsResponse>, Status> {
+        let req = request.get_ref();
+        let dev_eui = EUI64::from_str(&req.dev_eui).map_err(|e| e.status())?;
+
+        self.validator
+            .validate(
+                request.extensions(),
+                validator::ValidateDeviceAccess::new(validator::Flag::Read, dev_eui),
+            )
+            .await?;
+
+        let start = SystemTime::try_from(
+            req.start
+                .as_ref()
+                .ok_or(anyhow!("start is None"))
+                .map_err(|e| e.status())?
+                .clone(),
+        )
+        .map_err(|e| e.status())?;
+
+        let end = SystemTime::try_from(
+            req.end
+                .as_ref()
+                .ok_or(anyhow!("end is None"))
+                .map_err(|e| e.status())?
+                .clone(),
+        )
+        .map_err(|e| e.status())?;
+
+        let start: DateTime<Local> = start.into();
+        let end: DateTime<Local> = end.into();
+        let aggregation = req.aggregation().from_proto();
+
+        let dev = device::get(&dev_eui).await.map_err(|e| e.status())?;
+        let dp = device_profile::get(&dev.device_profile_id)
+            .await
+            .map_err(|e| e.status())?;
+
+        let mut out = api::GetDeviceMetricsResponse {
+            ..Default::default()
+        };
+
+        for (k, v) in dp.measurements.iter().sorted_by_key(|x| x.0) {
+            match v.kind {
+                fields::MeasurementKind::UNKNOWN => {
+                    continue;
+                }
+                fields::MeasurementKind::STRING => {
+                    out.states.push(api::DeviceState {
+                        key: k.to_string(),
+                        name: v.name.to_string(),
+                        value: metrics::get_state(&format!("device:{}:{}", dev.dev_eui, k))
+                            .await
+                            .map_err(|e| e.status())?,
+                    });
+                }
+                fields::MeasurementKind::COUNTER
+                | fields::MeasurementKind::ABSOLUTE
+                | fields::MeasurementKind::GAUGE => {
+                    let m = metrics::get(
+                        &format!("device:{}:{}", dev.dev_eui, k),
+                        match v.kind {
+                            fields::MeasurementKind::COUNTER => metrics::Kind::COUNTER,
+                            fields::MeasurementKind::ABSOLUTE => metrics::Kind::ABSOLUTE,
+                            fields::MeasurementKind::GAUGE => metrics::Kind::GAUGE,
+                            _ => panic!("Unexpected MeasurementKind: {:?}", v.kind),
+                        },
+                        aggregation,
+                        start,
+                        end,
+                    )
+                    .await
+                    .map_err(|e| e.status())?;
+
+                    out.metrics.push(common::Metric {
+                        name: v.name.to_string(),
+                        timestamps: m
+                            .iter()
+                            .map(|row| {
+                                let ts: DateTime<Utc> = row.time.into();
+                                let ts: pbjson_types::Timestamp = ts.into();
+                                ts
+                            })
+                            .collect(),
+                        datasets: vec![common::MetricDataset {
+                            label: k.to_string(),
+                            data: m
+                                .iter()
+                                .map(|row| row.metrics.get("value").cloned().unwrap_or(0.0) as f32)
+                                .collect(),
+                        }],
+                    });
+                }
+            }
+        }
+
+        Ok(Response::new(out))
+    }
+
     async fn get_stats(
         &self,
         request: Request<api::GetDeviceStatsRequest>,
@@ -597,10 +700,12 @@ impl DeviceService for Device {
 
         let start: DateTime<Local> = start.into();
         let end: DateTime<Local> = end.into();
+        let aggregation = req.aggregation().from_proto();
 
         let device_metrics = metrics::get(
             &format!("device:{}", dev_eui),
-            metrics::Aggregation::DAY,
+            metrics::Kind::ABSOLUTE,
+            aggregation,
             start,
             end,
         )

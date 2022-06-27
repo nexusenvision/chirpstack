@@ -51,6 +51,9 @@ type DeviceServiceClient interface {
 	GetActivation(ctx context.Context, in *GetDeviceActivationRequest, opts ...grpc.CallOption) (*GetDeviceActivationResponse, error)
 	// GetRandomDevAddr returns a random DevAddr taking the NwkID prefix into account.
 	GetRandomDevAddr(ctx context.Context, in *GetRandomDevAddrRequest, opts ...grpc.CallOption) (*GetRandomDevAddrResponse, error)
+	// GetMetrics returns the device metrics.
+	// Note that this requires a device-profile with codec and measurements configured.
+	GetMetrics(ctx context.Context, in *GetDeviceMetricsRequest, opts ...grpc.CallOption) (*GetDeviceMetricsResponse, error)
 	// GetStats returns the device stats.
 	GetStats(ctx context.Context, in *GetDeviceStatsRequest, opts ...grpc.CallOption) (*GetDeviceStatsResponse, error)
 	// Enqueue adds the given item to the downlink queue.
@@ -195,6 +198,15 @@ func (c *deviceServiceClient) GetRandomDevAddr(ctx context.Context, in *GetRando
 	return out, nil
 }
 
+func (c *deviceServiceClient) GetMetrics(ctx context.Context, in *GetDeviceMetricsRequest, opts ...grpc.CallOption) (*GetDeviceMetricsResponse, error) {
+	out := new(GetDeviceMetricsResponse)
+	err := c.cc.Invoke(ctx, "/api.DeviceService/GetMetrics", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *deviceServiceClient) GetStats(ctx context.Context, in *GetDeviceStatsRequest, opts ...grpc.CallOption) (*GetDeviceStatsResponse, error) {
 	out := new(GetDeviceStatsResponse)
 	err := c.cc.Invoke(ctx, "/api.DeviceService/GetStats", in, out, opts...)
@@ -263,6 +275,9 @@ type DeviceServiceServer interface {
 	GetActivation(context.Context, *GetDeviceActivationRequest) (*GetDeviceActivationResponse, error)
 	// GetRandomDevAddr returns a random DevAddr taking the NwkID prefix into account.
 	GetRandomDevAddr(context.Context, *GetRandomDevAddrRequest) (*GetRandomDevAddrResponse, error)
+	// GetMetrics returns the device metrics.
+	// Note that this requires a device-profile with codec and measurements configured.
+	GetMetrics(context.Context, *GetDeviceMetricsRequest) (*GetDeviceMetricsResponse, error)
 	// GetStats returns the device stats.
 	GetStats(context.Context, *GetDeviceStatsRequest) (*GetDeviceStatsResponse, error)
 	// Enqueue adds the given item to the downlink queue.
@@ -319,6 +334,9 @@ func (UnimplementedDeviceServiceServer) GetActivation(context.Context, *GetDevic
 }
 func (UnimplementedDeviceServiceServer) GetRandomDevAddr(context.Context, *GetRandomDevAddrRequest) (*GetRandomDevAddrResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetRandomDevAddr not implemented")
+}
+func (UnimplementedDeviceServiceServer) GetMetrics(context.Context, *GetDeviceMetricsRequest) (*GetDeviceMetricsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetMetrics not implemented")
 }
 func (UnimplementedDeviceServiceServer) GetStats(context.Context, *GetDeviceStatsRequest) (*GetDeviceStatsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetStats not implemented")
@@ -597,6 +615,24 @@ func _DeviceService_GetRandomDevAddr_Handler(srv interface{}, ctx context.Contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _DeviceService_GetMetrics_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetDeviceMetricsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DeviceServiceServer).GetMetrics(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/api.DeviceService/GetMetrics",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DeviceServiceServer).GetMetrics(ctx, req.(*GetDeviceMetricsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _DeviceService_GetStats_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetDeviceStatsRequest)
 	if err := dec(in); err != nil {
@@ -731,6 +767,10 @@ var DeviceService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetRandomDevAddr",
 			Handler:    _DeviceService_GetRandomDevAddr_Handler,
+		},
+		{
+			MethodName: "GetMetrics",
+			Handler:    _DeviceService_GetMetrics_Handler,
 		},
 		{
 			MethodName: "GetStats",

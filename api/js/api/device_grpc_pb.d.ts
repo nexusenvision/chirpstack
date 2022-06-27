@@ -22,6 +22,7 @@ interface IDeviceServiceService extends grpc.ServiceDefinition<grpc.UntypedServi
   deactivate: grpc.MethodDefinition<api_device_pb.DeactivateDeviceRequest, google_protobuf_empty_pb.Empty>;
   getActivation: grpc.MethodDefinition<api_device_pb.GetDeviceActivationRequest, api_device_pb.GetDeviceActivationResponse>;
   getRandomDevAddr: grpc.MethodDefinition<api_device_pb.GetRandomDevAddrRequest, api_device_pb.GetRandomDevAddrResponse>;
+  getMetrics: grpc.MethodDefinition<api_device_pb.GetDeviceMetricsRequest, api_device_pb.GetDeviceMetricsResponse>;
   getStats: grpc.MethodDefinition<api_device_pb.GetDeviceStatsRequest, api_device_pb.GetDeviceStatsResponse>;
   enqueue: grpc.MethodDefinition<api_device_pb.EnqueueDeviceQueueItemRequest, api_device_pb.EnqueueDeviceQueueItemResponse>;
   flushQueue: grpc.MethodDefinition<api_device_pb.FlushDeviceQueueRequest, google_protobuf_empty_pb.Empty>;
@@ -45,6 +46,7 @@ export interface IDeviceServiceServer extends grpc.UntypedServiceImplementation 
   deactivate: grpc.handleUnaryCall<api_device_pb.DeactivateDeviceRequest, google_protobuf_empty_pb.Empty>;
   getActivation: grpc.handleUnaryCall<api_device_pb.GetDeviceActivationRequest, api_device_pb.GetDeviceActivationResponse>;
   getRandomDevAddr: grpc.handleUnaryCall<api_device_pb.GetRandomDevAddrRequest, api_device_pb.GetRandomDevAddrResponse>;
+  getMetrics: grpc.handleUnaryCall<api_device_pb.GetDeviceMetricsRequest, api_device_pb.GetDeviceMetricsResponse>;
   getStats: grpc.handleUnaryCall<api_device_pb.GetDeviceStatsRequest, api_device_pb.GetDeviceStatsResponse>;
   enqueue: grpc.handleUnaryCall<api_device_pb.EnqueueDeviceQueueItemRequest, api_device_pb.EnqueueDeviceQueueItemResponse>;
   flushQueue: grpc.handleUnaryCall<api_device_pb.FlushDeviceQueueRequest, google_protobuf_empty_pb.Empty>;
@@ -95,6 +97,9 @@ export class DeviceServiceClient extends grpc.Client {
   getRandomDevAddr(argument: api_device_pb.GetRandomDevAddrRequest, callback: grpc.requestCallback<api_device_pb.GetRandomDevAddrResponse>): grpc.ClientUnaryCall;
   getRandomDevAddr(argument: api_device_pb.GetRandomDevAddrRequest, metadataOrOptions: grpc.Metadata | grpc.CallOptions | null, callback: grpc.requestCallback<api_device_pb.GetRandomDevAddrResponse>): grpc.ClientUnaryCall;
   getRandomDevAddr(argument: api_device_pb.GetRandomDevAddrRequest, metadata: grpc.Metadata | null, options: grpc.CallOptions | null, callback: grpc.requestCallback<api_device_pb.GetRandomDevAddrResponse>): grpc.ClientUnaryCall;
+  getMetrics(argument: api_device_pb.GetDeviceMetricsRequest, callback: grpc.requestCallback<api_device_pb.GetDeviceMetricsResponse>): grpc.ClientUnaryCall;
+  getMetrics(argument: api_device_pb.GetDeviceMetricsRequest, metadataOrOptions: grpc.Metadata | grpc.CallOptions | null, callback: grpc.requestCallback<api_device_pb.GetDeviceMetricsResponse>): grpc.ClientUnaryCall;
+  getMetrics(argument: api_device_pb.GetDeviceMetricsRequest, metadata: grpc.Metadata | null, options: grpc.CallOptions | null, callback: grpc.requestCallback<api_device_pb.GetDeviceMetricsResponse>): grpc.ClientUnaryCall;
   getStats(argument: api_device_pb.GetDeviceStatsRequest, callback: grpc.requestCallback<api_device_pb.GetDeviceStatsResponse>): grpc.ClientUnaryCall;
   getStats(argument: api_device_pb.GetDeviceStatsRequest, metadataOrOptions: grpc.Metadata | grpc.CallOptions | null, callback: grpc.requestCallback<api_device_pb.GetDeviceStatsResponse>): grpc.ClientUnaryCall;
   getStats(argument: api_device_pb.GetDeviceStatsRequest, metadata: grpc.Metadata | null, options: grpc.CallOptions | null, callback: grpc.requestCallback<api_device_pb.GetDeviceStatsResponse>): grpc.ClientUnaryCall;

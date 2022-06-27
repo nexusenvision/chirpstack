@@ -26,14 +26,17 @@ enum MeasurementKind {
     // Unknown (in which case it is not tracked).
     UNKNOWN = 0;
 
-    // Incrementing counters which are not reset on each reporting.
+    // Incrementing counters that never decrease (these are not reset on each reading).
     COUNTER = 1;
 
+    // Counters that do get reset upon reading.
+    ABSOLUTE = 2;
+
     // E.g. a temperature value.
-    GAUGE = 2;
+    GAUGE = 3;
 
     // E.g. a firmware version, true / false value.
-    STATE = 3;
+    STRING = 4;
 }
 
 // DeviceProfileService is the service providing API methods for managing device-profiles.

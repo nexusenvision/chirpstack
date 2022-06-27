@@ -16,6 +16,8 @@ const grpc = {};
 grpc.web = require('grpc-web');
 
 
+var common_common_pb = require('../common/common_pb.js')
+
 var google_protobuf_timestamp_pb = require('google-protobuf/google/protobuf/timestamp_pb.js')
 
 var google_protobuf_struct_pb = require('google-protobuf/google/protobuf/struct_pb.js')
@@ -1193,6 +1195,86 @@ proto.api.DeviceServicePromiseClient.prototype.getRandomDevAddr =
       request,
       metadata || {},
       methodDescriptor_DeviceService_GetRandomDevAddr);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.api.GetDeviceMetricsRequest,
+ *   !proto.api.GetDeviceMetricsResponse>}
+ */
+const methodDescriptor_DeviceService_GetMetrics = new grpc.web.MethodDescriptor(
+  '/api.DeviceService/GetMetrics',
+  grpc.web.MethodType.UNARY,
+  proto.api.GetDeviceMetricsRequest,
+  proto.api.GetDeviceMetricsResponse,
+  /**
+   * @param {!proto.api.GetDeviceMetricsRequest} request
+   * @return {!Uint8Array}
+   */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.api.GetDeviceMetricsResponse.deserializeBinary
+);
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.api.GetDeviceMetricsRequest,
+ *   !proto.api.GetDeviceMetricsResponse>}
+ */
+const methodInfo_DeviceService_GetMetrics = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.api.GetDeviceMetricsResponse,
+  /**
+   * @param {!proto.api.GetDeviceMetricsRequest} request
+   * @return {!Uint8Array}
+   */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.api.GetDeviceMetricsResponse.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.api.GetDeviceMetricsRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.api.GetDeviceMetricsResponse)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.api.GetDeviceMetricsResponse>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.api.DeviceServiceClient.prototype.getMetrics =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/api.DeviceService/GetMetrics',
+      request,
+      metadata || {},
+      methodDescriptor_DeviceService_GetMetrics,
+      callback);
+};
+
+
+/**
+ * @param {!proto.api.GetDeviceMetricsRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.api.GetDeviceMetricsResponse>}
+ *     Promise that resolves to the response
+ */
+proto.api.DeviceServicePromiseClient.prototype.getMetrics =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/api.DeviceService/GetMetrics',
+      request,
+      metadata || {},
+      methodDescriptor_DeviceService_GetMetrics);
 };
 
 

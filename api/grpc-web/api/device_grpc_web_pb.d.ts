@@ -107,6 +107,13 @@ export class DeviceServiceClient {
                response: api_device_pb.GetRandomDevAddrResponse) => void
   ): grpcWeb.ClientReadableStream<api_device_pb.GetRandomDevAddrResponse>;
 
+  getMetrics(
+    request: api_device_pb.GetDeviceMetricsRequest,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: api_device_pb.GetDeviceMetricsResponse) => void
+  ): grpcWeb.ClientReadableStream<api_device_pb.GetDeviceMetricsResponse>;
+
   getStats(
     request: api_device_pb.GetDeviceStatsRequest,
     metadata: grpcWeb.Metadata | undefined,
@@ -211,6 +218,11 @@ export class DeviceServicePromiseClient {
     request: api_device_pb.GetRandomDevAddrRequest,
     metadata?: grpcWeb.Metadata
   ): Promise<api_device_pb.GetRandomDevAddrResponse>;
+
+  getMetrics(
+    request: api_device_pb.GetDeviceMetricsRequest,
+    metadata?: grpcWeb.Metadata
+  ): Promise<api_device_pb.GetDeviceMetricsResponse>;
 
   getStats(
     request: api_device_pb.GetDeviceStatsRequest,

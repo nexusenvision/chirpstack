@@ -441,6 +441,7 @@ export enum CodecRuntime {
 export enum MeasurementKind { 
   UNKNOWN = 0,
   COUNTER = 1,
-  GAUGE = 2,
-  STATE = 3,
+  ABSOLUTE = 2,
+  GAUGE = 3,
+  STRING = 4,
 }

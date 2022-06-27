@@ -28,6 +28,8 @@ import {
   ActivateDeviceRequest,
   GetRandomDevAddrRequest,
   GetRandomDevAddrResponse,
+  GetDeviceMetricsRequest,
+  GetDeviceMetricsResponse,
 } from "@chirpstack/chirpstack-api-grpc-web/api/device_pb";
 
 import SessionStore from "./SessionStore";
@@ -171,6 +173,17 @@ class DeviceStore extends EventEmitter {
       callbackFunc();
     });
   };
+
+  getMetrics = (req: GetDeviceMetricsRequest, callbackFunc: (resp: GetDeviceMetricsResponse) => void) => {
+    this.client.getMetrics(req, SessionStore.getMetadata(), (err, resp) => {
+      if (err !== null) {
+        HandleError(err);
+        return;
+      }
+
+      callbackFunc(resp);
+    });
+  }
 
   getStats = (req: GetDeviceStatsRequest, callbackFunc: (resp: GetDeviceStatsResponse) => void) => {
     this.client.getStats(req, SessionStore.getMetadata(), (err, resp) => {

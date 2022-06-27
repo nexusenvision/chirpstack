@@ -725,8 +725,9 @@ class DeviceProfileForm extends Component<IProps, IState> {
                             <Select disabled={this.props.disabled}>
                               <Select.Option value={MeasurementKind.UNKNOWN}>Unknown / unset</Select.Option>
                               <Select.Option value={MeasurementKind.COUNTER}>Counter</Select.Option>
+                              <Select.Option value={MeasurementKind.ABSOLUTE}>Absolute</Select.Option>
                               <Select.Option value={MeasurementKind.GAUGE}>Gauge</Select.Option>
-                              <Select.Option value={MeasurementKind.STATE}>State</Select.Option>
+                              <Select.Option value={MeasurementKind.STRING}>String</Select.Option>
                             </Select>
                           </Form.Item>
                         </Col>

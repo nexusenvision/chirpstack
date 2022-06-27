@@ -9,6 +9,7 @@ var jspb = require('google-protobuf');
 var goog = jspb;
 var global = Function('return this')();
 
+var common_common_pb = require('../common/common_pb.js');
 var google_protobuf_timestamp_pb = require('google-protobuf/google/protobuf/timestamp_pb.js');
 var google_protobuf_struct_pb = require('google-protobuf/google/protobuf/struct_pb.js');
 var google_protobuf_empty_pb = require('google-protobuf/google/protobuf/empty_pb.js');
@@ -22,7 +23,10 @@ goog.exportSymbol('proto.api.Device', null, global);
 goog.exportSymbol('proto.api.DeviceActivation', null, global);
 goog.exportSymbol('proto.api.DeviceKeys', null, global);
 goog.exportSymbol('proto.api.DeviceListItem', null, global);
+goog.exportSymbol('proto.api.DeviceMetric', null, global);
+goog.exportSymbol('proto.api.DeviceMetricRow', null, global);
 goog.exportSymbol('proto.api.DeviceQueueItem', null, global);
+goog.exportSymbol('proto.api.DeviceState', null, global);
 goog.exportSymbol('proto.api.DeviceStats', null, global);
 goog.exportSymbol('proto.api.DeviceStatus', null, global);
 goog.exportSymbol('proto.api.EnqueueDeviceQueueItemRequest', null, global);
@@ -33,6 +37,8 @@ goog.exportSymbol('proto.api.GetDeviceActivationRequest', null, global);
 goog.exportSymbol('proto.api.GetDeviceActivationResponse', null, global);
 goog.exportSymbol('proto.api.GetDeviceKeysRequest', null, global);
 goog.exportSymbol('proto.api.GetDeviceKeysResponse', null, global);
+goog.exportSymbol('proto.api.GetDeviceMetricsRequest', null, global);
+goog.exportSymbol('proto.api.GetDeviceMetricsResponse', null, global);
 goog.exportSymbol('proto.api.GetDeviceQueueItemsRequest', null, global);
 goog.exportSymbol('proto.api.GetDeviceQueueItemsResponse', null, global);
 goog.exportSymbol('proto.api.GetDeviceRequest', null, global);
@@ -5091,6 +5097,1145 @@ proto.api.GetRandomDevAddrResponse.prototype.setDevAddr = function(value) {
  * @extends {jspb.Message}
  * @constructor
  */
+proto.api.GetDeviceMetricsRequest = function(opt_data) {
+  jspb.Message.initialize(this, opt_data, 0, -1, null, null);
+};
+goog.inherits(proto.api.GetDeviceMetricsRequest, jspb.Message);
+if (goog.DEBUG && !COMPILED) {
+  proto.api.GetDeviceMetricsRequest.displayName = 'proto.api.GetDeviceMetricsRequest';
+}
+
+
+if (jspb.Message.GENERATE_TO_OBJECT) {
+/**
+ * Creates an object representation of this proto suitable for use in Soy templates.
+ * Field names that are reserved in JavaScript and will be renamed to pb_name.
+ * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+ * For the list of reserved names please see:
+ *     com.google.apps.jspb.JsClassTemplate.JS_RESERVED_WORDS.
+ * @param {boolean=} opt_includeInstance Whether to include the JSPB instance
+ *     for transitional soy proto support: http://goto/soy-param-migration
+ * @return {!Object}
+ */
+proto.api.GetDeviceMetricsRequest.prototype.toObject = function(opt_includeInstance) {
+  return proto.api.GetDeviceMetricsRequest.toObject(opt_includeInstance, this);
+};
+
+
+/**
+ * Static version of the {@see toObject} method.
+ * @param {boolean|undefined} includeInstance Whether to include the JSPB
+ *     instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
+ * @param {!proto.api.GetDeviceMetricsRequest} msg The msg instance to transform.
+ * @return {!Object}
+ */
+proto.api.GetDeviceMetricsRequest.toObject = function(includeInstance, msg) {
+  var f, obj = {
+    devEui: msg.getDevEui(),
+    start: (f = msg.getStart()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
+    end: (f = msg.getEnd()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
+    aggregation: msg.getAggregation()
+  };
+
+  if (includeInstance) {
+    obj.$jspbMessageInstance = msg;
+  }
+  return obj;
+};
+}
+
+
+/**
+ * Deserializes binary data (in protobuf wire format).
+ * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @return {!proto.api.GetDeviceMetricsRequest}
+ */
+proto.api.GetDeviceMetricsRequest.deserializeBinary = function(bytes) {
+  var reader = new jspb.BinaryReader(bytes);
+  var msg = new proto.api.GetDeviceMetricsRequest;
+  return proto.api.GetDeviceMetricsRequest.deserializeBinaryFromReader(msg, reader);
+};
+
+
+/**
+ * Deserializes binary data (in protobuf wire format) from the
+ * given reader into the given message object.
+ * @param {!proto.api.GetDeviceMetricsRequest} msg The message object to deserialize into.
+ * @param {!jspb.BinaryReader} reader The BinaryReader to use.
+ * @return {!proto.api.GetDeviceMetricsRequest}
+ */
+proto.api.GetDeviceMetricsRequest.deserializeBinaryFromReader = function(msg, reader) {
+  while (reader.nextField()) {
+    if (reader.isEndGroup()) {
+      break;
+    }
+    var field = reader.getFieldNumber();
+    switch (field) {
+    case 1:
+      var value = /** @type {string} */ (reader.readString());
+      msg.setDevEui(value);
+      break;
+    case 2:
+      var value = new google_protobuf_timestamp_pb.Timestamp;
+      reader.readMessage(value,google_protobuf_timestamp_pb.Timestamp.deserializeBinaryFromReader);
+      msg.setStart(value);
+      break;
+    case 3:
+      var value = new google_protobuf_timestamp_pb.Timestamp;
+      reader.readMessage(value,google_protobuf_timestamp_pb.Timestamp.deserializeBinaryFromReader);
+      msg.setEnd(value);
+      break;
+    case 4:
+      var value = /** @type {!proto.common.Aggregation} */ (reader.readEnum());
+      msg.setAggregation(value);
+      break;
+    default:
+      reader.skipField();
+      break;
+    }
+  }
+  return msg;
+};
+
+
+/**
+ * Class method variant: serializes the given message to binary data
+ * (in protobuf wire format), writing to the given BinaryWriter.
+ * @param {!proto.api.GetDeviceMetricsRequest} message
+ * @param {!jspb.BinaryWriter} writer
+ */
+proto.api.GetDeviceMetricsRequest.serializeBinaryToWriter = function(message, writer) {
+  message.serializeBinaryToWriter(writer);
+};
+
+
+/**
+ * Serializes the message to binary data (in protobuf wire format).
+ * @return {!Uint8Array}
+ */
+proto.api.GetDeviceMetricsRequest.prototype.serializeBinary = function() {
+  var writer = new jspb.BinaryWriter();
+  this.serializeBinaryToWriter(writer);
+  return writer.getResultBuffer();
+};
+
+
+/**
+ * Serializes the message to binary data (in protobuf wire format),
+ * writing to the given BinaryWriter.
+ * @param {!jspb.BinaryWriter} writer
+ */
+proto.api.GetDeviceMetricsRequest.prototype.serializeBinaryToWriter = function (writer) {
+  var f = undefined;
+  f = this.getDevEui();
+  if (f.length > 0) {
+    writer.writeString(
+      1,
+      f
+    );
+  }
+  f = this.getStart();
+  if (f != null) {
+    writer.writeMessage(
+      2,
+      f,
+      google_protobuf_timestamp_pb.Timestamp.serializeBinaryToWriter
+    );
+  }
+  f = this.getEnd();
+  if (f != null) {
+    writer.writeMessage(
+      3,
+      f,
+      google_protobuf_timestamp_pb.Timestamp.serializeBinaryToWriter
+    );
+  }
+  f = this.getAggregation();
+  if (f !== 0.0) {
+    writer.writeEnum(
+      4,
+      f
+    );
+  }
+};
+
+
+/**
+ * Creates a deep clone of this proto. No data is shared with the original.
+ * @return {!proto.api.GetDeviceMetricsRequest} The clone.
+ */
+proto.api.GetDeviceMetricsRequest.prototype.cloneMessage = function() {
+  return /** @type {!proto.api.GetDeviceMetricsRequest} */ (jspb.Message.cloneMessage(this));
+};
+
+
+/**
+ * optional string dev_eui = 1;
+ * @return {string}
+ */
+proto.api.GetDeviceMetricsRequest.prototype.getDevEui = function() {
+  return /** @type {string} */ (jspb.Message.getFieldProto3(this, 1, ""));
+};
+
+
+/** @param {string} value  */
+proto.api.GetDeviceMetricsRequest.prototype.setDevEui = function(value) {
+  jspb.Message.setField(this, 1, value);
+};
+
+
+/**
+ * optional google.protobuf.Timestamp start = 2;
+ * @return {proto.google.protobuf.Timestamp}
+ */
+proto.api.GetDeviceMetricsRequest.prototype.getStart = function() {
+  return /** @type{proto.google.protobuf.Timestamp} */ (
+    jspb.Message.getWrapperField(this, google_protobuf_timestamp_pb.Timestamp, 2));
+};
+
+
+/** @param {proto.google.protobuf.Timestamp|undefined} value  */
+proto.api.GetDeviceMetricsRequest.prototype.setStart = function(value) {
+  jspb.Message.setWrapperField(this, 2, value);
+};
+
+
+proto.api.GetDeviceMetricsRequest.prototype.clearStart = function() {
+  this.setStart(undefined);
+};
+
+
+/**
+ * Returns whether this field is set.
+ * @return{!boolean}
+ */
+proto.api.GetDeviceMetricsRequest.prototype.hasStart = function() {
+  return jspb.Message.getField(this, 2) != null;
+};
+
+
+/**
+ * optional google.protobuf.Timestamp end = 3;
+ * @return {proto.google.protobuf.Timestamp}
+ */
+proto.api.GetDeviceMetricsRequest.prototype.getEnd = function() {
+  return /** @type{proto.google.protobuf.Timestamp} */ (
+    jspb.Message.getWrapperField(this, google_protobuf_timestamp_pb.Timestamp, 3));
+};
+
+
+/** @param {proto.google.protobuf.Timestamp|undefined} value  */
+proto.api.GetDeviceMetricsRequest.prototype.setEnd = function(value) {
+  jspb.Message.setWrapperField(this, 3, value);
+};
+
+
+proto.api.GetDeviceMetricsRequest.prototype.clearEnd = function() {
+  this.setEnd(undefined);
+};
+
+
+/**
+ * Returns whether this field is set.
+ * @return{!boolean}
+ */
+proto.api.GetDeviceMetricsRequest.prototype.hasEnd = function() {
+  return jspb.Message.getField(this, 3) != null;
+};
+
+
+/**
+ * optional common.Aggregation aggregation = 4;
+ * @return {!proto.common.Aggregation}
+ */
+proto.api.GetDeviceMetricsRequest.prototype.getAggregation = function() {
+  return /** @type {!proto.common.Aggregation} */ (jspb.Message.getFieldProto3(this, 4, 0));
+};
+
+
+/** @param {!proto.common.Aggregation} value  */
+proto.api.GetDeviceMetricsRequest.prototype.setAggregation = function(value) {
+  jspb.Message.setField(this, 4, value);
+};
+
+
+
+/**
+ * Generated by JsPbCodeGenerator.
+ * @param {Array=} opt_data Optional initial data array, typically from a
+ * server response, or constructed directly in Javascript. The array is used
+ * in place and becomes part of the constructed object. It is not cloned.
+ * If no data is provided, the constructed object will be empty, but still
+ * valid.
+ * @extends {jspb.Message}
+ * @constructor
+ */
+proto.api.GetDeviceMetricsResponse = function(opt_data) {
+  jspb.Message.initialize(this, opt_data, 0, -1, proto.api.GetDeviceMetricsResponse.repeatedFields_, null);
+};
+goog.inherits(proto.api.GetDeviceMetricsResponse, jspb.Message);
+if (goog.DEBUG && !COMPILED) {
+  proto.api.GetDeviceMetricsResponse.displayName = 'proto.api.GetDeviceMetricsResponse';
+}
+/**
+ * List of repeated fields within this message type.
+ * @private {!Array<number>}
+ * @const
+ */
+proto.api.GetDeviceMetricsResponse.repeatedFields_ = [1,2];
+
+
+
+if (jspb.Message.GENERATE_TO_OBJECT) {
+/**
+ * Creates an object representation of this proto suitable for use in Soy templates.
+ * Field names that are reserved in JavaScript and will be renamed to pb_name.
+ * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+ * For the list of reserved names please see:
+ *     com.google.apps.jspb.JsClassTemplate.JS_RESERVED_WORDS.
+ * @param {boolean=} opt_includeInstance Whether to include the JSPB instance
+ *     for transitional soy proto support: http://goto/soy-param-migration
+ * @return {!Object}
+ */
+proto.api.GetDeviceMetricsResponse.prototype.toObject = function(opt_includeInstance) {
+  return proto.api.GetDeviceMetricsResponse.toObject(opt_includeInstance, this);
+};
+
+
+/**
+ * Static version of the {@see toObject} method.
+ * @param {boolean|undefined} includeInstance Whether to include the JSPB
+ *     instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
+ * @param {!proto.api.GetDeviceMetricsResponse} msg The msg instance to transform.
+ * @return {!Object}
+ */
+proto.api.GetDeviceMetricsResponse.toObject = function(includeInstance, msg) {
+  var f, obj = {
+    metricsList: jspb.Message.toObjectList(msg.getMetricsList(),
+    common_common_pb.Metric.toObject, includeInstance),
+    statesList: jspb.Message.toObjectList(msg.getStatesList(),
+    proto.api.DeviceState.toObject, includeInstance)
+  };
+
+  if (includeInstance) {
+    obj.$jspbMessageInstance = msg;
+  }
+  return obj;
+};
+}
+
+
+/**
+ * Deserializes binary data (in protobuf wire format).
+ * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @return {!proto.api.GetDeviceMetricsResponse}
+ */
+proto.api.GetDeviceMetricsResponse.deserializeBinary = function(bytes) {
+  var reader = new jspb.BinaryReader(bytes);
+  var msg = new proto.api.GetDeviceMetricsResponse;
+  return proto.api.GetDeviceMetricsResponse.deserializeBinaryFromReader(msg, reader);
+};
+
+
+/**
+ * Deserializes binary data (in protobuf wire format) from the
+ * given reader into the given message object.
+ * @param {!proto.api.GetDeviceMetricsResponse} msg The message object to deserialize into.
+ * @param {!jspb.BinaryReader} reader The BinaryReader to use.
+ * @return {!proto.api.GetDeviceMetricsResponse}
+ */
+proto.api.GetDeviceMetricsResponse.deserializeBinaryFromReader = function(msg, reader) {
+  while (reader.nextField()) {
+    if (reader.isEndGroup()) {
+      break;
+    }
+    var field = reader.getFieldNumber();
+    switch (field) {
+    case 1:
+      var value = new common_common_pb.Metric;
+      reader.readMessage(value,common_common_pb.Metric.deserializeBinaryFromReader);
+      msg.getMetricsList().push(value);
+      msg.setMetricsList(msg.getMetricsList());
+      break;
+    case 2:
+      var value = new proto.api.DeviceState;
+      reader.readMessage(value,proto.api.DeviceState.deserializeBinaryFromReader);
+      msg.getStatesList().push(value);
+      msg.setStatesList(msg.getStatesList());
+      break;
+    default:
+      reader.skipField();
+      break;
+    }
+  }
+  return msg;
+};
+
+
+/**
+ * Class method variant: serializes the given message to binary data
+ * (in protobuf wire format), writing to the given BinaryWriter.
+ * @param {!proto.api.GetDeviceMetricsResponse} message
+ * @param {!jspb.BinaryWriter} writer
+ */
+proto.api.GetDeviceMetricsResponse.serializeBinaryToWriter = function(message, writer) {
+  message.serializeBinaryToWriter(writer);
+};
+
+
+/**
+ * Serializes the message to binary data (in protobuf wire format).
+ * @return {!Uint8Array}
+ */
+proto.api.GetDeviceMetricsResponse.prototype.serializeBinary = function() {
+  var writer = new jspb.BinaryWriter();
+  this.serializeBinaryToWriter(writer);
+  return writer.getResultBuffer();
+};
+
+
+/**
+ * Serializes the message to binary data (in protobuf wire format),
+ * writing to the given BinaryWriter.
+ * @param {!jspb.BinaryWriter} writer
+ */
+proto.api.GetDeviceMetricsResponse.prototype.serializeBinaryToWriter = function (writer) {
+  var f = undefined;
+  f = this.getMetricsList();
+  if (f.length > 0) {
+    writer.writeRepeatedMessage(
+      1,
+      f,
+      common_common_pb.Metric.serializeBinaryToWriter
+    );
+  }
+  f = this.getStatesList();
+  if (f.length > 0) {
+    writer.writeRepeatedMessage(
+      2,
+      f,
+      proto.api.DeviceState.serializeBinaryToWriter
+    );
+  }
+};
+
+
+/**
+ * Creates a deep clone of this proto. No data is shared with the original.
+ * @return {!proto.api.GetDeviceMetricsResponse} The clone.
+ */
+proto.api.GetDeviceMetricsResponse.prototype.cloneMessage = function() {
+  return /** @type {!proto.api.GetDeviceMetricsResponse} */ (jspb.Message.cloneMessage(this));
+};
+
+
+/**
+ * repeated common.Metric metrics = 1;
+ * If you change this array by adding, removing or replacing elements, or if you
+ * replace the array itself, then you must call the setter to update it.
+ * @return {!Array.<!proto.common.Metric>}
+ */
+proto.api.GetDeviceMetricsResponse.prototype.getMetricsList = function() {
+  return /** @type{!Array.<!proto.common.Metric>} */ (
+    jspb.Message.getRepeatedWrapperField(this, common_common_pb.Metric, 1));
+};
+
+
+/** @param {Array.<!proto.common.Metric>} value  */
+proto.api.GetDeviceMetricsResponse.prototype.setMetricsList = function(value) {
+  jspb.Message.setRepeatedWrapperField(this, 1, value);
+};
+
+
+proto.api.GetDeviceMetricsResponse.prototype.clearMetricsList = function() {
+  this.setMetricsList([]);
+};
+
+
+/**
+ * repeated DeviceState states = 2;
+ * If you change this array by adding, removing or replacing elements, or if you
+ * replace the array itself, then you must call the setter to update it.
+ * @return {!Array.<!proto.api.DeviceState>}
+ */
+proto.api.GetDeviceMetricsResponse.prototype.getStatesList = function() {
+  return /** @type{!Array.<!proto.api.DeviceState>} */ (
+    jspb.Message.getRepeatedWrapperField(this, proto.api.DeviceState, 2));
+};
+
+
+/** @param {Array.<!proto.api.DeviceState>} value  */
+proto.api.GetDeviceMetricsResponse.prototype.setStatesList = function(value) {
+  jspb.Message.setRepeatedWrapperField(this, 2, value);
+};
+
+
+proto.api.GetDeviceMetricsResponse.prototype.clearStatesList = function() {
+  this.setStatesList([]);
+};
+
+
+
+/**
+ * Generated by JsPbCodeGenerator.
+ * @param {Array=} opt_data Optional initial data array, typically from a
+ * server response, or constructed directly in Javascript. The array is used
+ * in place and becomes part of the constructed object. It is not cloned.
+ * If no data is provided, the constructed object will be empty, but still
+ * valid.
+ * @extends {jspb.Message}
+ * @constructor
+ */
+proto.api.DeviceMetric = function(opt_data) {
+  jspb.Message.initialize(this, opt_data, 0, -1, proto.api.DeviceMetric.repeatedFields_, null);
+};
+goog.inherits(proto.api.DeviceMetric, jspb.Message);
+if (goog.DEBUG && !COMPILED) {
+  proto.api.DeviceMetric.displayName = 'proto.api.DeviceMetric';
+}
+/**
+ * List of repeated fields within this message type.
+ * @private {!Array<number>}
+ * @const
+ */
+proto.api.DeviceMetric.repeatedFields_ = [3];
+
+
+
+if (jspb.Message.GENERATE_TO_OBJECT) {
+/**
+ * Creates an object representation of this proto suitable for use in Soy templates.
+ * Field names that are reserved in JavaScript and will be renamed to pb_name.
+ * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+ * For the list of reserved names please see:
+ *     com.google.apps.jspb.JsClassTemplate.JS_RESERVED_WORDS.
+ * @param {boolean=} opt_includeInstance Whether to include the JSPB instance
+ *     for transitional soy proto support: http://goto/soy-param-migration
+ * @return {!Object}
+ */
+proto.api.DeviceMetric.prototype.toObject = function(opt_includeInstance) {
+  return proto.api.DeviceMetric.toObject(opt_includeInstance, this);
+};
+
+
+/**
+ * Static version of the {@see toObject} method.
+ * @param {boolean|undefined} includeInstance Whether to include the JSPB
+ *     instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
+ * @param {!proto.api.DeviceMetric} msg The msg instance to transform.
+ * @return {!Object}
+ */
+proto.api.DeviceMetric.toObject = function(includeInstance, msg) {
+  var f, obj = {
+    key: msg.getKey(),
+    name: msg.getName(),
+    rowsList: jspb.Message.toObjectList(msg.getRowsList(),
+    proto.api.DeviceMetricRow.toObject, includeInstance)
+  };
+
+  if (includeInstance) {
+    obj.$jspbMessageInstance = msg;
+  }
+  return obj;
+};
+}
+
+
+/**
+ * Deserializes binary data (in protobuf wire format).
+ * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @return {!proto.api.DeviceMetric}
+ */
+proto.api.DeviceMetric.deserializeBinary = function(bytes) {
+  var reader = new jspb.BinaryReader(bytes);
+  var msg = new proto.api.DeviceMetric;
+  return proto.api.DeviceMetric.deserializeBinaryFromReader(msg, reader);
+};
+
+
+/**
+ * Deserializes binary data (in protobuf wire format) from the
+ * given reader into the given message object.
+ * @param {!proto.api.DeviceMetric} msg The message object to deserialize into.
+ * @param {!jspb.BinaryReader} reader The BinaryReader to use.
+ * @return {!proto.api.DeviceMetric}
+ */
+proto.api.DeviceMetric.deserializeBinaryFromReader = function(msg, reader) {
+  while (reader.nextField()) {
+    if (reader.isEndGroup()) {
+      break;
+    }
+    var field = reader.getFieldNumber();
+    switch (field) {
+    case 1:
+      var value = /** @type {string} */ (reader.readString());
+      msg.setKey(value);
+      break;
+    case 2:
+      var value = /** @type {string} */ (reader.readString());
+      msg.setName(value);
+      break;
+    case 3:
+      var value = new proto.api.DeviceMetricRow;
+      reader.readMessage(value,proto.api.DeviceMetricRow.deserializeBinaryFromReader);
+      msg.getRowsList().push(value);
+      msg.setRowsList(msg.getRowsList());
+      break;
+    default:
+      reader.skipField();
+      break;
+    }
+  }
+  return msg;
+};
+
+
+/**
+ * Class method variant: serializes the given message to binary data
+ * (in protobuf wire format), writing to the given BinaryWriter.
+ * @param {!proto.api.DeviceMetric} message
+ * @param {!jspb.BinaryWriter} writer
+ */
+proto.api.DeviceMetric.serializeBinaryToWriter = function(message, writer) {
+  message.serializeBinaryToWriter(writer);
+};
+
+
+/**
+ * Serializes the message to binary data (in protobuf wire format).
+ * @return {!Uint8Array}
+ */
+proto.api.DeviceMetric.prototype.serializeBinary = function() {
+  var writer = new jspb.BinaryWriter();
+  this.serializeBinaryToWriter(writer);
+  return writer.getResultBuffer();
+};
+
+
+/**
+ * Serializes the message to binary data (in protobuf wire format),
+ * writing to the given BinaryWriter.
+ * @param {!jspb.BinaryWriter} writer
+ */
+proto.api.DeviceMetric.prototype.serializeBinaryToWriter = function (writer) {
+  var f = undefined;
+  f = this.getKey();
+  if (f.length > 0) {
+    writer.writeString(
+      1,
+      f
+    );
+  }
+  f = this.getName();
+  if (f.length > 0) {
+    writer.writeString(
+      2,
+      f
+    );
+  }
+  f = this.getRowsList();
+  if (f.length > 0) {
+    writer.writeRepeatedMessage(
+      3,
+      f,
+      proto.api.DeviceMetricRow.serializeBinaryToWriter
+    );
+  }
+};
+
+
+/**
+ * Creates a deep clone of this proto. No data is shared with the original.
+ * @return {!proto.api.DeviceMetric} The clone.
+ */
+proto.api.DeviceMetric.prototype.cloneMessage = function() {
+  return /** @type {!proto.api.DeviceMetric} */ (jspb.Message.cloneMessage(this));
+};
+
+
+/**
+ * optional string key = 1;
+ * @return {string}
+ */
+proto.api.DeviceMetric.prototype.getKey = function() {
+  return /** @type {string} */ (jspb.Message.getFieldProto3(this, 1, ""));
+};
+
+
+/** @param {string} value  */
+proto.api.DeviceMetric.prototype.setKey = function(value) {
+  jspb.Message.setField(this, 1, value);
+};
+
+
+/**
+ * optional string name = 2;
+ * @return {string}
+ */
+proto.api.DeviceMetric.prototype.getName = function() {
+  return /** @type {string} */ (jspb.Message.getFieldProto3(this, 2, ""));
+};
+
+
+/** @param {string} value  */
+proto.api.DeviceMetric.prototype.setName = function(value) {
+  jspb.Message.setField(this, 2, value);
+};
+
+
+/**
+ * repeated DeviceMetricRow rows = 3;
+ * If you change this array by adding, removing or replacing elements, or if you
+ * replace the array itself, then you must call the setter to update it.
+ * @return {!Array.<!proto.api.DeviceMetricRow>}
+ */
+proto.api.DeviceMetric.prototype.getRowsList = function() {
+  return /** @type{!Array.<!proto.api.DeviceMetricRow>} */ (
+    jspb.Message.getRepeatedWrapperField(this, proto.api.DeviceMetricRow, 3));
+};
+
+
+/** @param {Array.<!proto.api.DeviceMetricRow>} value  */
+proto.api.DeviceMetric.prototype.setRowsList = function(value) {
+  jspb.Message.setRepeatedWrapperField(this, 3, value);
+};
+
+
+proto.api.DeviceMetric.prototype.clearRowsList = function() {
+  this.setRowsList([]);
+};
+
+
+
+/**
+ * Generated by JsPbCodeGenerator.
+ * @param {Array=} opt_data Optional initial data array, typically from a
+ * server response, or constructed directly in Javascript. The array is used
+ * in place and becomes part of the constructed object. It is not cloned.
+ * If no data is provided, the constructed object will be empty, but still
+ * valid.
+ * @extends {jspb.Message}
+ * @constructor
+ */
+proto.api.DeviceMetricRow = function(opt_data) {
+  jspb.Message.initialize(this, opt_data, 0, -1, null, null);
+};
+goog.inherits(proto.api.DeviceMetricRow, jspb.Message);
+if (goog.DEBUG && !COMPILED) {
+  proto.api.DeviceMetricRow.displayName = 'proto.api.DeviceMetricRow';
+}
+
+
+if (jspb.Message.GENERATE_TO_OBJECT) {
+/**
+ * Creates an object representation of this proto suitable for use in Soy templates.
+ * Field names that are reserved in JavaScript and will be renamed to pb_name.
+ * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+ * For the list of reserved names please see:
+ *     com.google.apps.jspb.JsClassTemplate.JS_RESERVED_WORDS.
+ * @param {boolean=} opt_includeInstance Whether to include the JSPB instance
+ *     for transitional soy proto support: http://goto/soy-param-migration
+ * @return {!Object}
+ */
+proto.api.DeviceMetricRow.prototype.toObject = function(opt_includeInstance) {
+  return proto.api.DeviceMetricRow.toObject(opt_includeInstance, this);
+};
+
+
+/**
+ * Static version of the {@see toObject} method.
+ * @param {boolean|undefined} includeInstance Whether to include the JSPB
+ *     instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
+ * @param {!proto.api.DeviceMetricRow} msg The msg instance to transform.
+ * @return {!Object}
+ */
+proto.api.DeviceMetricRow.toObject = function(includeInstance, msg) {
+  var f, obj = {
+    time: (f = msg.getTime()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
+    value: msg.getValue()
+  };
+
+  if (includeInstance) {
+    obj.$jspbMessageInstance = msg;
+  }
+  return obj;
+};
+}
+
+
+/**
+ * Deserializes binary data (in protobuf wire format).
+ * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @return {!proto.api.DeviceMetricRow}
+ */
+proto.api.DeviceMetricRow.deserializeBinary = function(bytes) {
+  var reader = new jspb.BinaryReader(bytes);
+  var msg = new proto.api.DeviceMetricRow;
+  return proto.api.DeviceMetricRow.deserializeBinaryFromReader(msg, reader);
+};
+
+
+/**
+ * Deserializes binary data (in protobuf wire format) from the
+ * given reader into the given message object.
+ * @param {!proto.api.DeviceMetricRow} msg The message object to deserialize into.
+ * @param {!jspb.BinaryReader} reader The BinaryReader to use.
+ * @return {!proto.api.DeviceMetricRow}
+ */
+proto.api.DeviceMetricRow.deserializeBinaryFromReader = function(msg, reader) {
+  while (reader.nextField()) {
+    if (reader.isEndGroup()) {
+      break;
+    }
+    var field = reader.getFieldNumber();
+    switch (field) {
+    case 1:
+      var value = new google_protobuf_timestamp_pb.Timestamp;
+      reader.readMessage(value,google_protobuf_timestamp_pb.Timestamp.deserializeBinaryFromReader);
+      msg.setTime(value);
+      break;
+    case 2:
+      var value = /** @type {number} */ (reader.readFloat());
+      msg.setValue(value);
+      break;
+    default:
+      reader.skipField();
+      break;
+    }
+  }
+  return msg;
+};
+
+
+/**
+ * Class method variant: serializes the given message to binary data
+ * (in protobuf wire format), writing to the given BinaryWriter.
+ * @param {!proto.api.DeviceMetricRow} message
+ * @param {!jspb.BinaryWriter} writer
+ */
+proto.api.DeviceMetricRow.serializeBinaryToWriter = function(message, writer) {
+  message.serializeBinaryToWriter(writer);
+};
+
+
+/**
+ * Serializes the message to binary data (in protobuf wire format).
+ * @return {!Uint8Array}
+ */
+proto.api.DeviceMetricRow.prototype.serializeBinary = function() {
+  var writer = new jspb.BinaryWriter();
+  this.serializeBinaryToWriter(writer);
+  return writer.getResultBuffer();
+};
+
+
+/**
+ * Serializes the message to binary data (in protobuf wire format),
+ * writing to the given BinaryWriter.
+ * @param {!jspb.BinaryWriter} writer
+ */
+proto.api.DeviceMetricRow.prototype.serializeBinaryToWriter = function (writer) {
+  var f = undefined;
+  f = this.getTime();
+  if (f != null) {
+    writer.writeMessage(
+      1,
+      f,
+      google_protobuf_timestamp_pb.Timestamp.serializeBinaryToWriter
+    );
+  }
+  f = this.getValue();
+  if (f !== 0.0) {
+    writer.writeFloat(
+      2,
+      f
+    );
+  }
+};
+
+
+/**
+ * Creates a deep clone of this proto. No data is shared with the original.
+ * @return {!proto.api.DeviceMetricRow} The clone.
+ */
+proto.api.DeviceMetricRow.prototype.cloneMessage = function() {
+  return /** @type {!proto.api.DeviceMetricRow} */ (jspb.Message.cloneMessage(this));
+};
+
+
+/**
+ * optional google.protobuf.Timestamp time = 1;
+ * @return {proto.google.protobuf.Timestamp}
+ */
+proto.api.DeviceMetricRow.prototype.getTime = function() {
+  return /** @type{proto.google.protobuf.Timestamp} */ (
+    jspb.Message.getWrapperField(this, google_protobuf_timestamp_pb.Timestamp, 1));
+};
+
+
+/** @param {proto.google.protobuf.Timestamp|undefined} value  */
+proto.api.DeviceMetricRow.prototype.setTime = function(value) {
+  jspb.Message.setWrapperField(this, 1, value);
+};
+
+
+proto.api.DeviceMetricRow.prototype.clearTime = function() {
+  this.setTime(undefined);
+};
+
+
+/**
+ * Returns whether this field is set.
+ * @return{!boolean}
+ */
+proto.api.DeviceMetricRow.prototype.hasTime = function() {
+  return jspb.Message.getField(this, 1) != null;
+};
+
+
+/**
+ * optional float value = 2;
+ * @return {number}
+ */
+proto.api.DeviceMetricRow.prototype.getValue = function() {
+  return /** @type {number} */ (jspb.Message.getFieldProto3(this, 2, 0));
+};
+
+
+/** @param {number} value  */
+proto.api.DeviceMetricRow.prototype.setValue = function(value) {
+  jspb.Message.setField(this, 2, value);
+};
+
+
+
+/**
+ * Generated by JsPbCodeGenerator.
+ * @param {Array=} opt_data Optional initial data array, typically from a
+ * server response, or constructed directly in Javascript. The array is used
+ * in place and becomes part of the constructed object. It is not cloned.
+ * If no data is provided, the constructed object will be empty, but still
+ * valid.
+ * @extends {jspb.Message}
+ * @constructor
+ */
+proto.api.DeviceState = function(opt_data) {
+  jspb.Message.initialize(this, opt_data, 0, -1, null, null);
+};
+goog.inherits(proto.api.DeviceState, jspb.Message);
+if (goog.DEBUG && !COMPILED) {
+  proto.api.DeviceState.displayName = 'proto.api.DeviceState';
+}
+
+
+if (jspb.Message.GENERATE_TO_OBJECT) {
+/**
+ * Creates an object representation of this proto suitable for use in Soy templates.
+ * Field names that are reserved in JavaScript and will be renamed to pb_name.
+ * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+ * For the list of reserved names please see:
+ *     com.google.apps.jspb.JsClassTemplate.JS_RESERVED_WORDS.
+ * @param {boolean=} opt_includeInstance Whether to include the JSPB instance
+ *     for transitional soy proto support: http://goto/soy-param-migration
+ * @return {!Object}
+ */
+proto.api.DeviceState.prototype.toObject = function(opt_includeInstance) {
+  return proto.api.DeviceState.toObject(opt_includeInstance, this);
+};
+
+
+/**
+ * Static version of the {@see toObject} method.
+ * @param {boolean|undefined} includeInstance Whether to include the JSPB
+ *     instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
+ * @param {!proto.api.DeviceState} msg The msg instance to transform.
+ * @return {!Object}
+ */
+proto.api.DeviceState.toObject = function(includeInstance, msg) {
+  var f, obj = {
+    key: msg.getKey(),
+    name: msg.getName(),
+    value: msg.getValue()
+  };
+
+  if (includeInstance) {
+    obj.$jspbMessageInstance = msg;
+  }
+  return obj;
+};
+}
+
+
+/**
+ * Deserializes binary data (in protobuf wire format).
+ * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @return {!proto.api.DeviceState}
+ */
+proto.api.DeviceState.deserializeBinary = function(bytes) {
+  var reader = new jspb.BinaryReader(bytes);
+  var msg = new proto.api.DeviceState;
+  return proto.api.DeviceState.deserializeBinaryFromReader(msg, reader);
+};
+
+
+/**
+ * Deserializes binary data (in protobuf wire format) from the
+ * given reader into the given message object.
+ * @param {!proto.api.DeviceState} msg The message object to deserialize into.
+ * @param {!jspb.BinaryReader} reader The BinaryReader to use.
+ * @return {!proto.api.DeviceState}
+ */
+proto.api.DeviceState.deserializeBinaryFromReader = function(msg, reader) {
+  while (reader.nextField()) {
+    if (reader.isEndGroup()) {
+      break;
+    }
+    var field = reader.getFieldNumber();
+    switch (field) {
+    case 1:
+      var value = /** @type {string} */ (reader.readString());
+      msg.setKey(value);
+      break;
+    case 2:
+      var value = /** @type {string} */ (reader.readString());
+      msg.setName(value);
+      break;
+    case 3:
+      var value = /** @type {string} */ (reader.readString());
+      msg.setValue(value);
+      break;
+    default:
+      reader.skipField();
+      break;
+    }
+  }
+  return msg;
+};
+
+
+/**
+ * Class method variant: serializes the given message to binary data
+ * (in protobuf wire format), writing to the given BinaryWriter.
+ * @param {!proto.api.DeviceState} message
+ * @param {!jspb.BinaryWriter} writer
+ */
+proto.api.DeviceState.serializeBinaryToWriter = function(message, writer) {
+  message.serializeBinaryToWriter(writer);
+};
+
+
+/**
+ * Serializes the message to binary data (in protobuf wire format).
+ * @return {!Uint8Array}
+ */
+proto.api.DeviceState.prototype.serializeBinary = function() {
+  var writer = new jspb.BinaryWriter();
+  this.serializeBinaryToWriter(writer);
+  return writer.getResultBuffer();
+};
+
+
+/**
+ * Serializes the message to binary data (in protobuf wire format),
+ * writing to the given BinaryWriter.
+ * @param {!jspb.BinaryWriter} writer
+ */
+proto.api.DeviceState.prototype.serializeBinaryToWriter = function (writer) {
+  var f = undefined;
+  f = this.getKey();
+  if (f.length > 0) {
+    writer.writeString(
+      1,
+      f
+    );
+  }
+  f = this.getName();
+  if (f.length > 0) {
+    writer.writeString(
+      2,
+      f
+    );
+  }
+  f = this.getValue();
+  if (f.length > 0) {
+    writer.writeString(
+      3,
+      f
+    );
+  }
+};
+
+
+/**
+ * Creates a deep clone of this proto. No data is shared with the original.
+ * @return {!proto.api.DeviceState} The clone.
+ */
+proto.api.DeviceState.prototype.cloneMessage = function() {
+  return /** @type {!proto.api.DeviceState} */ (jspb.Message.cloneMessage(this));
+};
+
+
+/**
+ * optional string key = 1;
+ * @return {string}
+ */
+proto.api.DeviceState.prototype.getKey = function() {
+  return /** @type {string} */ (jspb.Message.getFieldProto3(this, 1, ""));
+};
+
+
+/** @param {string} value  */
+proto.api.DeviceState.prototype.setKey = function(value) {
+  jspb.Message.setField(this, 1, value);
+};
+
+
+/**
+ * optional string name = 2;
+ * @return {string}
+ */
+proto.api.DeviceState.prototype.getName = function() {
+  return /** @type {string} */ (jspb.Message.getFieldProto3(this, 2, ""));
+};
+
+
+/** @param {string} value  */
+proto.api.DeviceState.prototype.setName = function(value) {
+  jspb.Message.setField(this, 2, value);
+};
+
+
+/**
+ * optional string value = 3;
+ * @return {string}
+ */
+proto.api.DeviceState.prototype.getValue = function() {
+  return /** @type {string} */ (jspb.Message.getFieldProto3(this, 3, ""));
+};
+
+
+/** @param {string} value  */
+proto.api.DeviceState.prototype.setValue = function(value) {
+  jspb.Message.setField(this, 3, value);
+};
+
+
+
+/**
+ * Generated by JsPbCodeGenerator.
+ * @param {Array=} opt_data Optional initial data array, typically from a
+ * server response, or constructed directly in Javascript. The array is used
+ * in place and becomes part of the constructed object. It is not cloned.
+ * If no data is provided, the constructed object will be empty, but still
+ * valid.
+ * @extends {jspb.Message}
+ * @constructor
+ */
 proto.api.GetDeviceStatsRequest = function(opt_data) {
   jspb.Message.initialize(this, opt_data, 0, -1, null, null);
 };
@@ -5128,7 +6273,8 @@ proto.api.GetDeviceStatsRequest.toObject = function(includeInstance, msg) {
   var f, obj = {
     devEui: msg.getDevEui(),
     start: (f = msg.getStart()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
-    end: (f = msg.getEnd()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f)
+    end: (f = msg.getEnd()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
+    aggregation: msg.getAggregation()
   };
 
   if (includeInstance) {
@@ -5178,6 +6324,10 @@ proto.api.GetDeviceStatsRequest.deserializeBinaryFromReader = function(msg, read
       var value = new google_protobuf_timestamp_pb.Timestamp;
       reader.readMessage(value,google_protobuf_timestamp_pb.Timestamp.deserializeBinaryFromReader);
       msg.setEnd(value);
+      break;
+    case 4:
+      var value = /** @type {!proto.common.Aggregation} */ (reader.readEnum());
+      msg.setAggregation(value);
       break;
     default:
       reader.skipField();
@@ -5238,6 +6388,13 @@ proto.api.GetDeviceStatsRequest.prototype.serializeBinaryToWriter = function (wr
       3,
       f,
       google_protobuf_timestamp_pb.Timestamp.serializeBinaryToWriter
+    );
+  }
+  f = this.getAggregation();
+  if (f !== 0.0) {
+    writer.writeEnum(
+      4,
+      f
     );
   }
 };
@@ -5324,6 +6481,21 @@ proto.api.GetDeviceStatsRequest.prototype.clearEnd = function() {
  */
 proto.api.GetDeviceStatsRequest.prototype.hasEnd = function() {
   return jspb.Message.getField(this, 3) != null;
+};
+
+
+/**
+ * optional common.Aggregation aggregation = 4;
+ * @return {!proto.common.Aggregation}
+ */
+proto.api.GetDeviceStatsRequest.prototype.getAggregation = function() {
+  return /** @type {!proto.common.Aggregation} */ (jspb.Message.getFieldProto3(this, 4, 0));
+};
+
+
+/** @param {!proto.common.Aggregation} value  */
+proto.api.GetDeviceStatsRequest.prototype.setAggregation = function(value) {
+  jspb.Message.setField(this, 4, value);
 };
 
 

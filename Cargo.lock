@@ -828,6 +828,7 @@ dependencies = [
  "httpmock",
  "humantime-serde",
  "hyper",
+ "itertools",
  "jsonwebtoken",
  "lazy_static",
  "lrwn",

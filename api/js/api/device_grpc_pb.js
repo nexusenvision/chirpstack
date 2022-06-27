@@ -3,6 +3,7 @@
 'use strict';
 var grpc = require('@grpc/grpc-js');
 var api_device_pb = require('../api/device_pb.js');
+var common_common_pb = require('../common/common_pb.js');
 var google_protobuf_timestamp_pb = require('google-protobuf/google/protobuf/timestamp_pb.js');
 var google_protobuf_struct_pb = require('google-protobuf/google/protobuf/struct_pb.js');
 var google_protobuf_empty_pb = require('google-protobuf/google/protobuf/empty_pb.js');
@@ -159,6 +160,28 @@ function serialize_api_GetDeviceKeysResponse(arg) {
 
 function deserialize_api_GetDeviceKeysResponse(buffer_arg) {
   return api_device_pb.GetDeviceKeysResponse.deserializeBinary(new Uint8Array(buffer_arg));
+}
+
+function serialize_api_GetDeviceMetricsRequest(arg) {
+  if (!(arg instanceof api_device_pb.GetDeviceMetricsRequest)) {
+    throw new Error('Expected argument of type api.GetDeviceMetricsRequest');
+  }
+  return Buffer.from(arg.serializeBinary());
+}
+
+function deserialize_api_GetDeviceMetricsRequest(buffer_arg) {
+  return api_device_pb.GetDeviceMetricsRequest.deserializeBinary(new Uint8Array(buffer_arg));
+}
+
+function serialize_api_GetDeviceMetricsResponse(arg) {
+  if (!(arg instanceof api_device_pb.GetDeviceMetricsResponse)) {
+    throw new Error('Expected argument of type api.GetDeviceMetricsResponse');
+  }
+  return Buffer.from(arg.serializeBinary());
+}
+
+function deserialize_api_GetDeviceMetricsResponse(buffer_arg) {
+  return api_device_pb.GetDeviceMetricsResponse.deserializeBinary(new Uint8Array(buffer_arg));
 }
 
 function serialize_api_GetDeviceQueueItemsRequest(arg) {
@@ -474,6 +497,19 @@ getRandomDevAddr: {
     requestDeserialize: deserialize_api_GetRandomDevAddrRequest,
     responseSerialize: serialize_api_GetRandomDevAddrResponse,
     responseDeserialize: deserialize_api_GetRandomDevAddrResponse,
+  },
+  // GetMetrics returns the device metrics.
+// Note that this requires a device-profile with codec and measurements configured.
+getMetrics: {
+    path: '/api.DeviceService/GetMetrics',
+    requestStream: false,
+    responseStream: false,
+    requestType: api_device_pb.GetDeviceMetricsRequest,
+    responseType: api_device_pb.GetDeviceMetricsResponse,
+    requestSerialize: serialize_api_GetDeviceMetricsRequest,
+    requestDeserialize: deserialize_api_GetDeviceMetricsRequest,
+    responseSerialize: serialize_api_GetDeviceMetricsResponse,
+    responseDeserialize: deserialize_api_GetDeviceMetricsResponse,
   },
   // GetStats returns the device stats.
 getStats: {

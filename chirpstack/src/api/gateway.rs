@@ -298,6 +298,7 @@ impl GatewayService for Gateway {
 
         let gw_metrics = metrics::get(
             &format!("gw:{}", gateway_id),
+            metrics::Kind::ABSOLUTE,
             metrics::Aggregation::DAY,
             start,
             end,
@@ -558,6 +559,7 @@ pub mod test {
 
         // insert stats
         let mut m = metrics::Record {
+            kind: metrics::Kind::ABSOLUTE,
             time: now.into(),
             metrics: HashMap::new(),
         };
