@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::str::FromStr;
+use std::sync::Arc;
 use std::time::Duration;
 
 use anyhow::Result;
@@ -11,14 +12,16 @@ use tracing::{error, info, warn};
 use uuid::Uuid;
 use warp::{http::StatusCode, Filter, Reply};
 
-use crate::backend::{keywrap, roaming};
+use crate::backend::{joinserver, keywrap, roaming};
 use crate::downlink::data_fns;
-use crate::storage::{device_session, error::Error as StorageError, get_redis_conn, redis_key};
+use crate::storage::{
+    device_session, error::Error as StorageError, get_redis_conn, passive_roaming, redis_key,
+};
 use crate::uplink::{data_sns, helpers, join_sns, RoamingMetaData, UplinkFrameSet};
 use crate::{config, region};
 use backend::{BasePayload, MessageType};
 use lrwn::region::CommonName;
-use lrwn::{AES128Key, NetID};
+use lrwn::{AES128Key, NetID, EUI64};
 
 pub async fn setup() -> Result<()> {
     let conf = config::get();
@@ -57,52 +60,87 @@ pub async fn handle_request(mut body: impl warp::Buf) -> http::Response<hyper::B
         }
     };
 
-    let sender_id = match NetID::from_slice(&bp.sender_id) {
-        Ok(v) => v,
-        Err(e) => {
-            return warp::reply::with_status(e.to_string(), StatusCode::BAD_REQUEST)
-                .into_response();
-        }
-    };
-
-    let resp = match bp.message_type {
-        // Async responses
-        MessageType::JoinAns
-        | MessageType::RejoinAns
-        | MessageType::AppSKeyAns
-        | MessageType::PRStartAns
-        | MessageType::PRStopAns
-        | MessageType::HomeNSAns
-        | MessageType::XmitDataAns => {
-            return match handle_async_ans(&bp, &b).await {
+    let sender_client = {
+        if bp.sender_id.len() == 8 {
+            // JoinEUI.
+            let sender_id = match EUI64::from_slice(&bp.sender_id) {
                 Ok(v) => v,
-                Err(e) => warp::reply::with_status(
-                    format!("Error: {:?}", e),
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                )
-                .into_response(),
+                Err(e) => {
+                    error!(error = %e, "Error decoding SenderID as EUI64");
+                    let msg = format!("Error decoding SenderID: {}", e);
+                    let pl = bp.to_base_payload_result(backend::ResultCode::MalformedRequest, &msg);
+                    return warp::reply::json(&pl).into_response();
+                }
             };
+
+            match joinserver::get(&sender_id) {
+                Ok(v) => v,
+                Err(_) => {
+                    error!(sender_id = %sender_id, "Unknown SenderID");
+                    let msg = format!("Unknown SenderID: {}", sender_id);
+                    let pl = bp.to_base_payload_result(backend::ResultCode::UnknownSender, &msg);
+                    return warp::reply::json(&pl).into_response();
+                }
+            }
+        } else if bp.sender_id.len() == 3 {
+            // NetID
+            let sender_id = match NetID::from_slice(&bp.sender_id) {
+                Ok(v) => v,
+                Err(e) => {
+                    error!(error = %e, "Error decoding SenderID as NetID");
+                    let msg = format!("Error decoding SenderID: {}", e);
+                    let pl = bp.to_base_payload_result(backend::ResultCode::MalformedRequest, &msg);
+                    return warp::reply::json(&pl).into_response();
+                }
+            };
+
+            match roaming::get(&sender_id) {
+                Ok(v) => v,
+                Err(_) => {
+                    error!(sender_id = %sender_id, "Unknown SenderID");
+                    let msg = format!("Unknown SenderID: {}", sender_id);
+                    let pl = bp.to_base_payload_result(backend::ResultCode::UnknownSender, &msg);
+                    return warp::reply::json(&pl).into_response();
+                }
+            }
+        } else {
+            // Unknown size
+            error!(sender_id = ?bp.sender_id, "Invalid SenderID length");
+            let pl = bp.to_base_payload_result(
+                backend::ResultCode::MalformedRequest,
+                "Invalid SenderID length",
+            );
+            return warp::reply::json(&pl).into_response();
         }
-        // Roaming types
-        MessageType::PRStartReq => handle_pr_start_req(sender_id, &b).await,
-        MessageType::PRStopReq => handle_pr_stop_req(&b).await,
-        MessageType::XmitDataReq => handle_xmit_data_req(&b).await,
-        // Unknown message
-        _ => Err(anyhow!(
-            "Handler for {:?} is not implemented",
-            bp.message_type
-        )),
     };
 
-    match resp {
-        Ok(v) => v,
-        Err(e) => {
-            error!(error = %e, "Error handling request");
-            let msg = format!("{}", e);
-            let pl = bp.to_base_payload_result(err_to_result_code(e), &msg);
-            warp::reply::json(&pl).into_response()
-        }
+    // Request is an async answer.
+    if bp.is_answer() {
+        tokio::spawn(async move {
+            if let Err(e) = handle_async_ans(&bp, &b).await {
+                error!(error = %e, "Handle async answer error");
+            }
+        });
+        return warp::reply::with_status("", StatusCode::OK).into_response();
     }
+
+    match bp.message_type {
+        MessageType::PRStartReq => handle_pr_start_req(sender_client, bp, &b).await,
+        MessageType::PRStopReq => handle_pr_stop_req(sender_client, bp, &b).await,
+        MessageType::XmitDataReq => handle_xmit_data_req(sender_client, bp, &b).await,
+        // Unknown message
+        _ => warp::reply::with_status(
+            "Handler for {:?} is not implemented",
+            StatusCode::INTERNAL_SERVER_ERROR,
+        )
+        .into_response(),
+    }
+}
+
+fn err_to_response(e: anyhow::Error, bp: &backend::BasePayload) -> http::Response<hyper::Body> {
+    let msg = format!("{}", e);
+    let pl = bp.to_base_payload_result(err_to_result_code(e), &msg);
+    warp::reply::json(&pl).into_response()
 }
 
 fn err_to_result_code(e: anyhow::Error) -> backend::ResultCode {
@@ -118,21 +156,54 @@ fn err_to_result_code(e: anyhow::Error) -> backend::ResultCode {
     backend::ResultCode::Other
 }
 
-async fn handle_pr_start_req(sender_id: NetID, b: &[u8]) -> Result<http::Response<hyper::Body>> {
+async fn handle_pr_start_req(
+    sender_client: Arc<backend::Client>,
+    bp: backend::BasePayload,
+    b: &[u8],
+) -> http::Response<hyper::Body> {
+    if sender_client.is_async() {
+        let b = b.to_vec();
+        task::spawn(async move {
+            let ans = match _handle_pr_start_req(&b).await {
+                Ok(v) => v,
+                Err(e) => {
+                    let msg = e.to_string();
+                    backend::PRStartAnsPayload {
+                        base: bp.to_base_payload_result(err_to_result_code(e), &msg),
+                        ..Default::default()
+                    }
+                }
+            };
+
+            if let Err(e) = sender_client.pr_start_ans(backend::Role::FNS, &ans).await {
+                error!(error = %e, "Send async PRStartAns error");
+            }
+        });
+
+        warp::reply::with_status("", StatusCode::OK).into_response()
+    } else {
+        match _handle_pr_start_req(b).await {
+            Ok(v) => warp::reply::json(&v).into_response(),
+            Err(e) => err_to_response(e, &bp),
+        }
+    }
+}
+
+async fn _handle_pr_start_req(b: &[u8]) -> Result<backend::PRStartAnsPayload> {
     let pl: backend::PRStartReqPayload = serde_json::from_slice(b)?;
     let phy = lrwn::PhyPayload::from_slice(&pl.phy_payload)?;
 
     if phy.mhdr.m_type == lrwn::MType::JoinRequest {
-        handle_pr_start_req_join(pl, phy).await
+        _handle_pr_start_req_join(pl, phy).await
     } else {
-        handle_pr_start_req_data(sender_id, pl, phy).await
+        _handle_pr_start_req_data(pl, phy).await
     }
 }
 
-async fn handle_pr_start_req_join(
+async fn _handle_pr_start_req_join(
     pl: backend::PRStartReqPayload,
     phy: lrwn::PhyPayload,
-) -> Result<http::Response<hyper::Body>> {
+) -> Result<backend::PRStartAnsPayload> {
     let rx_info = roaming::ul_meta_data_to_rx_info(&pl.ul_meta_data)?;
     let tx_info = roaming::ul_meta_data_to_tx_info(&pl.ul_meta_data)?;
     let region_common_name = CommonName::from_str(&pl.ul_meta_data.rf_region)?;
@@ -156,15 +227,14 @@ async fn handle_pr_start_req_join(
         }),
     };
 
-    let res = join_sns::JoinRequest::start_pr(ufs, pl).await?;
-    Ok(warp::reply::json(&res).into_response())
+    join_sns::JoinRequest::start_pr(ufs, pl).await
 }
 
-async fn handle_pr_start_req_data(
-    sender_id: NetID,
+async fn _handle_pr_start_req_data(
     pl: backend::PRStartReqPayload,
     phy: lrwn::PhyPayload,
-) -> Result<http::Response<hyper::Body>> {
+) -> Result<backend::PRStartAnsPayload> {
+    let sender_id = NetID::from_slice(&pl.base.sender_id)?;
     let rx_info = roaming::ul_meta_data_to_rx_info(&pl.ul_meta_data)?;
     let tx_info = roaming::ul_meta_data_to_tx_info(&pl.ul_meta_data)?;
     let region_common_name = CommonName::from_str(&pl.ul_meta_data.rf_region)?;
@@ -216,7 +286,7 @@ async fn handle_pr_start_req_data(
         data_sns::Data::handle(ufs).await;
     }
 
-    let ans = backend::PRStartAnsPayload {
+    Ok(backend::PRStartAnsPayload {
         base: pl
             .base
             .to_base_payload_result(backend::ResultCode::Success, ""),
@@ -230,33 +300,116 @@ async fn handle_pr_start_req_data(
         nwk_s_key,
         f_cnt_up: Some(ds.f_cnt_up),
         ..Default::default()
-    };
-    Ok(warp::reply::json(&ans).into_response())
+    })
 }
 
-async fn handle_pr_stop_req(b: &[u8]) -> Result<http::Response<hyper::Body>> {
-    let _pl: backend::PRStopReqPayload = match serde_json::from_slice(b) {
-        Ok(v) => v,
-        Err(e) => {
-            return Ok(
-                warp::reply::with_status(e.to_string(), StatusCode::BAD_REQUEST).into_response(),
-            );
+async fn handle_pr_stop_req(
+    sender_client: Arc<backend::Client>,
+    bp: backend::BasePayload,
+    b: &[u8],
+) -> http::Response<hyper::Body> {
+    if sender_client.is_async() {
+        let b = b.to_vec();
+        task::spawn(async move {
+            let ans = match _handle_pr_stop_req(&b).await {
+                Ok(v) => v,
+                Err(e) => {
+                    let msg = e.to_string();
+                    backend::PRStopAnsPayload {
+                        base: bp.to_base_payload_result(err_to_result_code(e), &msg),
+                        ..Default::default()
+                    }
+                }
+            };
+
+            if let Err(e) = sender_client.pr_stop_ans(backend::Role::SNS, &ans).await {
+                error!(error = %e, "Send async PRStopAns error");
+            }
+        });
+
+        warp::reply::with_status("", StatusCode::OK).into_response()
+    } else {
+        match _handle_pr_stop_req(b).await {
+            Ok(v) => warp::reply::json(&v).into_response(),
+            Err(e) => err_to_response(e, &bp),
         }
-    };
-
-    unimplemented!()
+    }
 }
 
-async fn handle_xmit_data_req(b: &[u8]) -> Result<http::Response<hyper::Body>> {
+async fn _handle_pr_stop_req(b: &[u8]) -> Result<backend::PRStopAnsPayload> {
+    let pl: backend::PRStopReqPayload = serde_json::from_slice(b)?;
+    let dev_eui = EUI64::from_slice(&pl.dev_eui)?;
+
+    let sess_ids = passive_roaming::get_session_ids_for_dev_eui(dev_eui).await?;
+    if sess_ids.is_empty() {
+        return Ok(backend::PRStopAnsPayload {
+            base: pl
+                .base
+                .to_base_payload_result(backend::ResultCode::UnknownDevEUI, ""),
+        });
+    }
+
+    for sess_id in sess_ids {
+        if let Err(e) = passive_roaming::delete(sess_id).await {
+            error!(error = %e, "Delete passive-roaming device-session error");
+        }
+    }
+
+    Ok(backend::PRStopAnsPayload {
+        base: pl
+            .base
+            .to_base_payload_result(backend::ResultCode::Success, ""),
+    })
+}
+
+async fn handle_xmit_data_req(
+    sender_client: Arc<backend::Client>,
+    bp: backend::BasePayload,
+    b: &[u8],
+) -> http::Response<hyper::Body> {
     let pl: backend::XmitDataReqPayload = match serde_json::from_slice(b) {
         Ok(v) => v,
         Err(e) => {
-            return Ok(
-                warp::reply::with_status(e.to_string(), StatusCode::BAD_REQUEST).into_response(),
-            );
+            return err_to_response(anyhow::Error::new(e), &bp);
         }
     };
 
+    if sender_client.is_async() {
+        task::spawn(async move {
+            let sender_role = if pl.ul_meta_data.is_some() {
+                backend::Role::FNS
+            } else {
+                backend::Role::SNS
+            };
+
+            let ans = match _handle_xmit_data_req(pl).await {
+                Ok(v) => v,
+                Err(e) => {
+                    let msg = e.to_string();
+                    backend::XmitDataAnsPayload {
+                        base: bp.to_base_payload_result(err_to_result_code(e), &msg),
+                        ..Default::default()
+                    }
+                }
+            };
+
+            if let Err(e) = sender_client.xmit_data_ans(sender_role, &ans).await {
+                error!(error = %e, "Send async XmitDataAns error");
+            }
+        });
+
+        warp::reply::with_status("", StatusCode::OK).into_response()
+    } else {
+        match _handle_xmit_data_req(pl).await {
+            Ok(v) => warp::reply::json(&v).into_response(),
+            Err(e) => err_to_response(e, &bp),
+        }
+    }
+}
+
+async fn _handle_xmit_data_req(
+    pl: backend::XmitDataReqPayload,
+) -> Result<backend::XmitDataAnsPayload> {
     if let Some(ul_meta_data) = &pl.ul_meta_data {
         let rx_info = roaming::ul_meta_data_to_rx_info(ul_meta_data)?;
         let tx_info = roaming::ul_meta_data_to_tx_info(ul_meta_data)?;
@@ -289,13 +442,11 @@ async fn handle_xmit_data_req(b: &[u8]) -> Result<http::Response<hyper::Body>> {
         data_fns::Data::handle(pl.clone(), dl_meta_data.clone()).await?;
     }
 
-    let ans = backend::XmitDataAnsPayload {
+    Ok(backend::XmitDataAnsPayload {
         base: pl
             .base
             .to_base_payload_result(backend::ResultCode::Success, ""),
-    };
-
-    Ok(warp::reply::json(&ans).into_response())
+    })
 }
 
 async fn handle_async_ans(bp: &BasePayload, b: &[u8]) -> Result<http::Response<hyper::Body>> {

@@ -205,6 +205,10 @@ impl Client {
         Ok(ans)
     }
 
+    pub async fn pr_start_ans(&self, target_role: Role, pl: &PRStartAnsPayload) -> Result<()> {
+        self.response_request(Some(target_role), pl).await
+    }
+
     pub async fn pr_stop_req(
         &self,
         target_role: Role,
@@ -219,6 +223,10 @@ impl Client {
         self.request(Some(target_role), &pl, &mut ans, async_resp)
             .await?;
         Ok(ans)
+    }
+
+    pub async fn pr_stop_ans(&self, target_role: Role, pl: &PRStopAnsPayload) -> Result<()> {
+        self.response_request(Some(target_role), pl).await
     }
 
     pub async fn home_ns_req(
@@ -249,6 +257,35 @@ impl Client {
         self.request(Some(target_role), &pl, &mut ans, async_resp)
             .await?;
         Ok(ans)
+    }
+
+    pub async fn xmit_data_ans(&self, target_role: Role, pl: &XmitDataAnsPayload) -> Result<()> {
+        self.response_request(Some(target_role), pl).await
+    }
+
+    async fn response_request<S>(&self, target_role: Option<Role>, pl: &S) -> Result<()>
+    where
+        S: ?Sized + serde::ser::Serialize + BasePayloadResultProvider,
+    {
+        let server = if self.config.use_target_role_suffix {
+            match target_role {
+                Some(Role::FNS) => format!("{}/fns", self.config.server),
+                Some(Role::SNS) => format!("{}/sns", self.config.server),
+                Some(Role::HNS) => format!("{}/hns", self.config.server),
+                None => self.config.server.clone(),
+            }
+        } else {
+            self.config.server.clone()
+        };
+
+        self.client
+            .post(&server)
+            .headers(self.headers.clone())
+            .json(pl)
+            .send()
+            .await?
+            .error_for_status()?;
+        Ok(())
     }
 
     async fn request<S, D>(
@@ -296,11 +333,7 @@ impl Client {
                     }
                 }
             }
-            None => {
-                res.text().await?
-                //let t = &res.text().await?;
-                //*ans = serde_json::from_str(t)?;
-            }
+            None => res.text().await?,
         };
 
         let base: BasePayloadResult = serde_json::from_str(&resp_json)?;
@@ -430,6 +463,26 @@ impl BasePayload {
                 result_code: res_code,
                 description: description.to_string(),
             },
+        }
+    }
+
+    pub fn is_answer(&self) -> bool {
+        match self.message_type {
+            MessageType::JoinAns
+            | MessageType::RejoinAns
+            | MessageType::AppSKeyAns
+            | MessageType::PRStartAns
+            | MessageType::PRStopAns
+            | MessageType::HomeNSAns
+            | MessageType::XmitDataAns => true,
+
+            MessageType::JoinReq
+            | MessageType::RejoinReq
+            | MessageType::AppSKeyReq
+            | MessageType::PRStartReq
+            | MessageType::PRStopReq
+            | MessageType::HomeNSReq
+            | MessageType::XmitDataReq => false,
         }
     }
 }
