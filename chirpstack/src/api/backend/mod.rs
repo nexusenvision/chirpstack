@@ -57,7 +57,7 @@ pub async fn handle_request(mut body: impl warp::Buf) -> http::Response<hyper::B
         }
     };
 
-    let sender_id = match NetID::from_str(&bp.sender_id) {
+    let sender_id = match NetID::from_slice(&bp.sender_id) {
         Ok(v) => v,
         Err(e) => {
             return warp::reply::with_status(e.to_string(), StatusCode::BAD_REQUEST)
@@ -123,14 +123,13 @@ async fn handle_pr_start_req(sender_id: NetID, b: &[u8]) -> Result<http::Respons
     let phy = lrwn::PhyPayload::from_slice(&pl.phy_payload)?;
 
     if phy.mhdr.m_type == lrwn::MType::JoinRequest {
-        handle_pr_start_req_join(sender_id, pl, phy).await
+        handle_pr_start_req_join(pl, phy).await
     } else {
         handle_pr_start_req_data(sender_id, pl, phy).await
     }
 }
 
 async fn handle_pr_start_req_join(
-    _sender_id: NetID,
     pl: backend::PRStartReqPayload,
     phy: lrwn::PhyPayload,
 ) -> Result<http::Response<hyper::Body>> {

@@ -23,8 +23,8 @@ pub fn setup() -> Result<()> {
         info!("Configuring Join Server");
 
         let c = Client::new(ClientConfig {
-            sender_id: conf.network.net_id.to_string(),
-            receiver_id: js.join_eui.to_string(),
+            sender_id: conf.network.net_id.to_vec(),
+            receiver_id: js.join_eui.to_vec(),
             server: js.server.clone(),
             ca_cert: js.ca_cert.clone(),
             tls_cert: js.tls_cert.clone(),

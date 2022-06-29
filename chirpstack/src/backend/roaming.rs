@@ -44,8 +44,8 @@ pub fn setup() -> Result<()> {
         );
 
         let c = Client::new(ClientConfig {
-            sender_id: conf.network.net_id.to_string(),
-            receiver_id: s.net_id.to_string(),
+            sender_id: conf.network.net_id.to_vec(),
+            receiver_id: s.net_id.to_vec(),
             server,
             use_target_role_suffix: s.use_target_role_suffix,
             ca_cert: s.ca_cert.clone(),
@@ -91,8 +91,8 @@ pub fn get(net_id: &NetID) -> Result<Arc<Client>> {
         };
 
         let c = Client::new(ClientConfig {
-            sender_id: conf.network.net_id.to_string(),
-            receiver_id: net_id.to_string(),
+            sender_id: conf.network.net_id.to_vec(),
+            receiver_id: net_id.to_vec(),
             server,
             use_target_role_suffix: conf.roaming.default.use_target_role_suffix,
             ca_cert: conf.roaming.default.ca_cert.clone(),

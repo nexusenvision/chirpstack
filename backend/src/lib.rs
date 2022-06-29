@@ -32,8 +32,8 @@ pub trait BasePayloadResultProvider {
 }
 
 pub struct ClientConfig {
-    pub sender_id: String,
-    pub receiver_id: String,
+    pub sender_id: Vec<u8>,
+    pub receiver_id: Vec<u8>,
     pub server: String,
     pub ca_cert: String,
     pub tls_cert: String,
@@ -54,8 +54,8 @@ pub struct ClientConfig {
 impl Default for ClientConfig {
     fn default() -> Self {
         ClientConfig {
-            sender_id: "".into(),
-            receiver_id: "".into(),
+            sender_id: vec![],
+            receiver_id: vec![],
             server: "".into(),
             ca_cert: "".into(),
             tls_cert: "".into(),
@@ -131,11 +131,11 @@ impl Client {
         })
     }
 
-    pub fn get_sender_id(&self) -> String {
+    pub fn get_sender_id(&self) -> Vec<u8> {
         self.config.sender_id.clone()
     }
 
-    pub fn get_receiver_id(&self) -> String {
+    pub fn get_receiver_id(&self) -> Vec<u8> {
         self.config.receiver_id.clone()
     }
 
@@ -381,10 +381,10 @@ pub enum RatePolicy {
 pub struct BasePayload {
     #[serde(rename = "ProtocolVersion")]
     pub protocol_version: String,
-    #[serde(rename = "SenderID")]
-    pub sender_id: String,
-    #[serde(rename = "ReceiverID")]
-    pub receiver_id: String,
+    #[serde(rename = "SenderID", with = "hex_encode")]
+    pub sender_id: Vec<u8>,
+    #[serde(rename = "ReceiverID", with = "hex_encode")]
+    pub receiver_id: Vec<u8>,
     #[serde(rename = "TransactionID")]
     pub transaction_id: u32,
     #[serde(rename = "MessageType")]
@@ -414,8 +414,8 @@ impl BasePayload {
         BasePayloadResult {
             base: BasePayload {
                 protocol_version: self.protocol_version.clone(),
-                sender_id: self.receiver_id.to_string(),
-                receiver_id: self.sender_id.to_string(),
+                sender_id: self.receiver_id.clone(),
+                receiver_id: self.sender_id.clone(),
                 transaction_id: self.transaction_id,
                 message_type: match self.message_type {
                     MessageType::PRStartReq => MessageType::PRStartAns,

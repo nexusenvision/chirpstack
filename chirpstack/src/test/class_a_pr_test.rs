@@ -99,8 +99,8 @@ async fn test_fns_uplink() {
             .path("/")
             .json_body_obj(&backend::PRStartReqPayload {
                 base: backend::BasePayload {
-                    sender_id: "000202".to_string(),
-                    receiver_id: "000505".to_string(),
+                    sender_id: vec![0, 2, 2],
+                    receiver_id: vec![0, 5, 5],
                     message_type: backend::MessageType::PRStartReq,
                     transaction_id: 1234,
                     ..Default::default()
@@ -120,8 +120,8 @@ async fn test_fns_uplink() {
         then.json_body_obj(&backend::PRStartAnsPayload {
             base: backend::BasePayloadResult {
                 base: backend::BasePayload {
-                    receiver_id: "010203".to_string(),
-                    sender_id: "030201".to_string(),
+                    receiver_id: vec![1, 2, 3],
+                    sender_id: vec![3, 2, 1],
                     message_type: backend::MessageType::PRStartAns,
                     transaction_id: 1234,
                     ..Default::default()
@@ -296,8 +296,8 @@ async fn test_sns_uplink() {
 
     let pr_start_req = backend::PRStartReqPayload {
         base: backend::BasePayload {
-            sender_id: "000202".to_string(),
-            receiver_id: "000505".to_string(),
+            sender_id: vec![0, 2, 2],
+            receiver_id: vec![0, 5, 5],
             message_type: backend::MessageType::PRStartReq,
             transaction_id: 1234,
             ..Default::default()
@@ -320,8 +320,8 @@ async fn test_sns_uplink() {
             .path("/")
             .json_body_obj(&backend::XmitDataReqPayload {
                 base: backend::BasePayload {
-                    receiver_id: "000202".to_string(),
-                    sender_id: "000505".to_string(),
+                    receiver_id: vec![0, 2, 2],
+                    sender_id: vec![0, 5, 5],
                     message_type: backend::MessageType::XmitDataReq,
                     transaction_id: 1234,
                     ..Default::default()
@@ -347,8 +347,8 @@ async fn test_sns_uplink() {
         then.json_body_obj(&backend::XmitDataAnsPayload {
             base: backend::BasePayloadResult {
                 base: backend::BasePayload {
-                    receiver_id: "000505".to_string(),
-                    sender_id: "000202".to_string(),
+                    receiver_id: vec![0, 5, 5],
+                    sender_id: vec![0, 2, 2],
                     message_type: backend::MessageType::XmitDataAns,
                     transaction_id: 1234,
                     ..Default::default()
@@ -373,8 +373,8 @@ async fn test_sns_uplink() {
         backend::PRStartAnsPayload {
             base: backend::BasePayloadResult {
                 base: backend::BasePayload {
-                    sender_id: "000505".to_string(),
-                    receiver_id: "000202".to_string(),
+                    sender_id: vec![0, 5, 5],
+                    receiver_id: vec![0, 2, 2],
                     message_type: backend::MessageType::PRStartAns,
                     transaction_id: 1234,
                     ..Default::default()
@@ -460,8 +460,8 @@ async fn test_sns_dev_not_found() {
 
     let pr_start_req = backend::PRStartReqPayload {
         base: backend::BasePayload {
-            sender_id: "000202".to_string(),
-            receiver_id: "000505".to_string(),
+            sender_id: vec![0, 2, 2],
+            receiver_id: vec![0, 5, 5],
             message_type: backend::MessageType::PRStartReq,
             transaction_id: 1234,
             ..Default::default()
@@ -489,8 +489,8 @@ async fn test_sns_dev_not_found() {
         backend::PRStartAnsPayload {
             base: backend::BasePayloadResult {
                 base: backend::BasePayload {
-                    sender_id: "000505".to_string(),
-                    receiver_id: "000202".to_string(),
+                    sender_id: vec![0, 5, 5],
+                    receiver_id: vec![0, 2, 2],
                     message_type: backend::MessageType::PRStartAns,
                     transaction_id: 1234,
                     ..Default::default()

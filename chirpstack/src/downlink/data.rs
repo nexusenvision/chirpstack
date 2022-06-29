@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::str::FromStr;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -681,7 +680,7 @@ impl Data {
 
         let roaming_meta = ufs.roaming_meta_data.as_ref().unwrap();
 
-        let net_id = NetID::from_str(&roaming_meta.base_payload.sender_id)?;
+        let net_id = NetID::from_slice(&roaming_meta.base_payload.sender_id)?;
         let client = roaming::get(&net_id)?;
 
         let mut req = backend::XmitDataReqPayload {

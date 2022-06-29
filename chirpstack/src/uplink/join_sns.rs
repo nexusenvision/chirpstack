@@ -1,4 +1,3 @@
-use std::str::FromStr;
 use std::sync::Arc;
 
 use anyhow::{Context, Result};
@@ -691,7 +690,7 @@ impl JoinRequest {
         let ds = self.device_session.as_ref().unwrap();
         let region_conf = region::get(&self.uplink_frame_set.region_name)?;
 
-        let sender_id = NetID::from_str(&self.pr_start_req.base.sender_id)?;
+        let sender_id = NetID::from_slice(&self.pr_start_req.base.sender_id)?;
         let pr_lifetime = roaming::get_passive_roaming_lifetime(sender_id)?;
         let kek_label = roaming::get_passive_roaming_kek_label(sender_id)?;
 

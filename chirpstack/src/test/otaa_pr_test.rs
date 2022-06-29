@@ -100,8 +100,8 @@ async fn test_fns() {
             .path("/")
             .json_body_obj(&backend::HomeNSReqPayload {
                 base: backend::BasePayload {
-                    sender_id: "010203".to_string(),
-                    receiver_id: "0102030405060708".to_string(),
+                    sender_id: vec![1, 2, 3],
+                    receiver_id: vec![1, 2, 3, 4, 5, 6, 7, 8],
                     message_type: backend::MessageType::HomeNSReq,
                     transaction_id: 1234,
                     ..Default::default()
@@ -112,8 +112,8 @@ async fn test_fns() {
         then.json_body_obj(&backend::HomeNSAnsPayload {
             base: backend::BasePayloadResult {
                 base: backend::BasePayload {
-                    receiver_id: "010203".to_string(),
-                    sender_id: "0102030405060708".to_string(),
+                    receiver_id: vec![1, 2, 3],
+                    sender_id: vec![1, 2, 3, 4, 5, 6, 7, 8],
                     message_type: backend::MessageType::HomeNSAns,
                     transaction_id: 1234,
                     ..Default::default()
@@ -134,8 +134,8 @@ async fn test_fns() {
             .path("/")
             .json_body_obj(&backend::PRStartReqPayload {
                 base: backend::BasePayload {
-                    sender_id: "010203".to_string(),
-                    receiver_id: "030201".to_string(),
+                    sender_id: vec![1, 2, 3],
+                    receiver_id: vec![3, 2, 1],
                     message_type: backend::MessageType::PRStartReq,
                     transaction_id: 1234,
                     ..Default::default()
@@ -156,8 +156,8 @@ async fn test_fns() {
         then.json_body_obj(&backend::PRStartAnsPayload {
             base: backend::BasePayloadResult {
                 base: backend::BasePayload {
-                    receiver_id: "010203".to_string(),
-                    sender_id: "030201".to_string(),
+                    receiver_id: vec![1, 2, 3],
+                    sender_id: vec![3, 2, 1],
                     message_type: backend::MessageType::PRStartAns,
                     transaction_id: 1234,
                     ..Default::default()
@@ -340,8 +340,8 @@ async fn test_sns() {
 
     let pr_start_req = backend::PRStartReqPayload {
         base: backend::BasePayload {
-            sender_id: "030201".to_string(),
-            receiver_id: "010203".to_string(),
+            sender_id: vec![3, 2, 1],
+            receiver_id: vec![1, 2, 3],
             message_type: backend::MessageType::PRStartReq,
             transaction_id: 1234,
             ..Default::default()
@@ -370,8 +370,8 @@ async fn test_sns() {
         backend::PRStartAnsPayload {
             base: backend::BasePayloadResult {
                 base: backend::BasePayload {
-                    sender_id: "010203".to_string(),
-                    receiver_id: "030201".to_string(),
+                    sender_id: vec![1, 2, 3],
+                    receiver_id: vec![3, 2, 1],
                     message_type: backend::MessageType::PRStartAns,
                     transaction_id: 1234,
                     ..Default::default()
