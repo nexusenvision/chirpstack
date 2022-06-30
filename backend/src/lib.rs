@@ -12,7 +12,7 @@ use reqwest::header::{HeaderMap, AUTHORIZATION, CONTENT_TYPE};
 use reqwest::{Certificate, Identity};
 use serde::{Deserialize, Serialize};
 use tokio::sync::oneshot::Receiver;
-use tracing::trace;
+use tracing::{error, info, trace};
 
 const PROTOCOL_VERSION: &str = "1.0";
 
@@ -278,6 +278,10 @@ impl Client {
             self.config.server.clone()
         };
 
+        let bp = pl.base_payload();
+
+        info!(receiver_id = %hex::encode(&bp.base.receiver_id), transaction_id = bp.base.transaction_id, message_type = ?bp.base.message_type, server = %server, "Making request");
+
         self.client
             .post(&server)
             .headers(self.headers.clone())
@@ -310,6 +314,10 @@ impl Client {
             self.config.server.clone()
         };
 
+        let bp = pl.base_payload().clone();
+
+        info!(receiver_id = %hex::encode(&bp.receiver_id), transaction_id = bp.transaction_id, message_type = ?bp.message_type, server = %server, async_interface = %async_resp.is_some(), "Making request");
+
         let res = self
             .client
             .post(&server)
@@ -326,9 +334,9 @@ impl Client {
                 tokio::select! {
                     rx_ans = rx => {
                         String::from_utf8(rx_ans?)?
-                        //*ans = serde_json::from_slice(&rx_ans?)?;
                     }
                     _ = sleep => {
+                        error!(receiver_id = %hex::encode(&bp.receiver_id), transaction_id = bp.transaction_id, message_type = ?bp.message_type, "Async request timeout");
                         return Err(anyhow!("Async timeout"));
                     }
                 }
@@ -338,6 +346,7 @@ impl Client {
 
         let base: BasePayloadResult = serde_json::from_str(&resp_json)?;
         if base.result.result_code != ResultCode::Success {
+            error!(result_code = ?base.result.result_code, description = %base.result.description, receiver_id = %hex::encode(&bp.receiver_id), transaction_id = bp.transaction_id, message_type = ?bp.message_type, "Response error");
             return Err(anyhow!(
                 "Response error, code: {:?}, description: {:?}",
                 base.result.result_code,

@@ -354,9 +354,8 @@ pub struct JoinServer {
 pub struct JoinServerServer {
     pub join_eui: EUI64,
     pub server: String,
-    pub async_interface: bool,
     #[serde(with = "humantime_serde")]
-    pub async_interface_timeout: Duration,
+    pub async_timeout: Duration,
     pub ca_cert: String,
     pub tls_cert: String,
     pub tls_key: String,
@@ -383,8 +382,9 @@ pub struct BackendInterfaces {
 #[serde(default)]
 pub struct RoamingServer {
     pub net_id: NetID,
-    pub is_async: bool,
+    #[serde(with = "humantime_serde")]
     pub async_timeout: Duration,
+    #[serde(with = "humantime_serde")]
     pub passive_roaming_lifetime: Duration,
     pub passive_roaming_kek_label: String,
     pub server: String,
@@ -399,8 +399,9 @@ pub struct RoamingServer {
 #[serde(default)]
 pub struct RoamingServerDefault {
     pub enabled: bool,
-    pub is_async: bool,
+    #[serde(with = "humantime_serde")]
     pub async_timeout: Duration,
+    #[serde(with = "humantime_serde")]
     pub passive_roaming_lifetime: Duration,
     pub passive_roaming_kek_label: String,
     pub server: String,

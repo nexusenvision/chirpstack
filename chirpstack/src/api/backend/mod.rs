@@ -60,6 +60,8 @@ pub async fn handle_request(mut body: impl warp::Buf) -> http::Response<hyper::B
         }
     };
 
+    info!(sender_id = %hex::encode(&bp.sender_id), transaction_id = %bp.transaction_id, message_type = ?bp.message_type, "Request received");
+
     let sender_client = {
         if bp.sender_id.len() == 8 {
             // JoinEUI.
@@ -317,7 +319,6 @@ async fn handle_pr_stop_req(
                     let msg = e.to_string();
                     backend::PRStopAnsPayload {
                         base: bp.to_base_payload_result(err_to_result_code(e), &msg),
-                        ..Default::default()
                     }
                 }
             };
@@ -388,7 +389,6 @@ async fn handle_xmit_data_req(
                     let msg = e.to_string();
                     backend::XmitDataAnsPayload {
                         base: bp.to_base_payload_result(err_to_result_code(e), &msg),
-                        ..Default::default()
                     }
                 }
             };

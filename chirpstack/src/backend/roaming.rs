@@ -38,7 +38,6 @@ pub fn setup() -> Result<()> {
         info!(
             passive_roaming_lifetime = ?s.passive_roaming_lifetime,
             server = %server,
-            is_async = s.is_async,
             async_timeout = ?s.async_timeout,
             "Configuring roaming client"
         );
