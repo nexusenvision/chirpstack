@@ -883,10 +883,10 @@ export namespace DeviceQueueItem {
 }
 
 export class EnqueueDeviceQueueItemRequest extends jspb.Message {
-  hasItem(): boolean;
-  clearItem(): void;
-  getItem(): DeviceQueueItem | undefined;
-  setItem(value?: DeviceQueueItem): void;
+  hasQueueItem(): boolean;
+  clearQueueItem(): void;
+  getQueueItem(): DeviceQueueItem | undefined;
+  setQueueItem(value?: DeviceQueueItem): void;
 
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): EnqueueDeviceQueueItemRequest.AsObject;
@@ -900,7 +900,7 @@ export class EnqueueDeviceQueueItemRequest extends jspb.Message {
 
 export namespace EnqueueDeviceQueueItemRequest {
   export type AsObject = {
-    item?: DeviceQueueItem.AsObject,
+    queueItem?: DeviceQueueItem.AsObject,
   }
 }
 

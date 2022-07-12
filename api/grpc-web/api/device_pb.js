@@ -7042,7 +7042,7 @@ proto.api.EnqueueDeviceQueueItemRequest.prototype.toObject = function(opt_includ
  */
 proto.api.EnqueueDeviceQueueItemRequest.toObject = function(includeInstance, msg) {
   var f, obj = {
-    item: (f = msg.getItem()) && proto.api.DeviceQueueItem.toObject(includeInstance, f)
+    queueItem: (f = msg.getQueueItem()) && proto.api.DeviceQueueItem.toObject(includeInstance, f)
   };
 
   if (includeInstance) {
@@ -7082,7 +7082,7 @@ proto.api.EnqueueDeviceQueueItemRequest.deserializeBinaryFromReader = function(m
     case 1:
       var value = new proto.api.DeviceQueueItem;
       reader.readMessage(value,proto.api.DeviceQueueItem.deserializeBinaryFromReader);
-      msg.setItem(value);
+      msg.setQueueItem(value);
       break;
     default:
       reader.skipField();
@@ -7113,7 +7113,7 @@ proto.api.EnqueueDeviceQueueItemRequest.prototype.serializeBinary = function() {
  */
 proto.api.EnqueueDeviceQueueItemRequest.serializeBinaryToWriter = function(message, writer) {
   var f = undefined;
-  f = message.getItem();
+  f = message.getQueueItem();
   if (f != null) {
     writer.writeMessage(
       1,
@@ -7125,10 +7125,10 @@ proto.api.EnqueueDeviceQueueItemRequest.serializeBinaryToWriter = function(messa
 
 
 /**
- * optional DeviceQueueItem item = 1;
+ * optional DeviceQueueItem queue_item = 1;
  * @return {?proto.api.DeviceQueueItem}
  */
-proto.api.EnqueueDeviceQueueItemRequest.prototype.getItem = function() {
+proto.api.EnqueueDeviceQueueItemRequest.prototype.getQueueItem = function() {
   return /** @type{?proto.api.DeviceQueueItem} */ (
     jspb.Message.getWrapperField(this, proto.api.DeviceQueueItem, 1));
 };
@@ -7138,7 +7138,7 @@ proto.api.EnqueueDeviceQueueItemRequest.prototype.getItem = function() {
  * @param {?proto.api.DeviceQueueItem|undefined} value
  * @return {!proto.api.EnqueueDeviceQueueItemRequest} returns this
 */
-proto.api.EnqueueDeviceQueueItemRequest.prototype.setItem = function(value) {
+proto.api.EnqueueDeviceQueueItemRequest.prototype.setQueueItem = function(value) {
   return jspb.Message.setWrapperField(this, 1, value);
 };
 
@@ -7147,8 +7147,8 @@ proto.api.EnqueueDeviceQueueItemRequest.prototype.setItem = function(value) {
  * Clears the message field making it undefined.
  * @return {!proto.api.EnqueueDeviceQueueItemRequest} returns this
  */
-proto.api.EnqueueDeviceQueueItemRequest.prototype.clearItem = function() {
-  return this.setItem(undefined);
+proto.api.EnqueueDeviceQueueItemRequest.prototype.clearQueueItem = function() {
+  return this.setQueueItem(undefined);
 };
 
 
@@ -7156,7 +7156,7 @@ proto.api.EnqueueDeviceQueueItemRequest.prototype.clearItem = function() {
  * Returns whether this field is set.
  * @return {boolean}
  */
-proto.api.EnqueueDeviceQueueItemRequest.prototype.hasItem = function() {
+proto.api.EnqueueDeviceQueueItemRequest.prototype.hasQueueItem = function() {
   return jspb.Message.getField(this, 1) != null;
 };
 

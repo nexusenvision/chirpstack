@@ -137,7 +137,7 @@ service DeviceService {
     // Enqueue adds the given item to the downlink queue.
     rpc Enqueue(EnqueueDeviceQueueItemRequest) returns (EnqueueDeviceQueueItemResponse) {
         option(google.api.http) = {
-            post: "/api/devices/{item.dev_eui}/queue"
+            post: "/api/devices/{queue_item.dev_eui}/queue"
             body: "*"
         };
     }
@@ -492,7 +492,7 @@ message DeviceQueueItem {
 }
 
 message EnqueueDeviceQueueItemRequest {
-    DeviceQueueItem item = 1;
+    DeviceQueueItem queue_item = 1;
 }
 
 message EnqueueDeviceQueueItemResponse {
