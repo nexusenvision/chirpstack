@@ -17,6 +17,8 @@ var global = Function('return this')();
 
 var common_common_pb = require('../common/common_pb.js');
 goog.object.extend(proto, common_common_pb);
+var google_api_annotations_pb = require('../google/api/annotations_pb.js');
+goog.object.extend(proto, google_api_annotations_pb);
 var google_protobuf_timestamp_pb = require('google-protobuf/google/protobuf/timestamp_pb.js');
 goog.object.extend(proto, google_protobuf_timestamp_pb);
 var google_protobuf_struct_pb = require('google-protobuf/google/protobuf/struct_pb.js');
