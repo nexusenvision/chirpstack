@@ -1,11 +1,11 @@
 use std::collections::HashMap;
 use std::fmt;
-use std::io::Write;
 use std::str::FromStr;
 
 use anyhow::{Context, Result};
 use chrono::{DateTime, Utc};
-use diesel::backend::Backend;
+use diesel::backend::{self, Backend};
+use diesel::pg::Pg;
 use diesel::sql_types::Text;
 use diesel::{deserialize, serialize};
 use serde::{Deserialize, Serialize};
@@ -16,7 +16,7 @@ mod js;
 
 #[derive(Deserialize, Serialize, Copy, Clone, Debug, Eq, PartialEq, AsExpression, FromSqlRow)]
 #[allow(non_camel_case_types, clippy::upper_case_acronyms)]
-#[sql_type = "diesel::sql_types::Text"]
+#[diesel(sql_type = diesel::sql_types::Text)]
 pub enum Codec {
     NONE,
     CAYENNE_LPP,
@@ -29,24 +29,23 @@ impl fmt::Display for Codec {
     }
 }
 
-impl<ST, DB> deserialize::FromSql<ST, DB> for Codec
+impl<DB> deserialize::FromSql<Text, DB> for Codec
 where
     DB: Backend,
-    *const str: deserialize::FromSql<ST, DB>,
+    *const str: deserialize::FromSql<Text, DB>,
 {
-    fn from_sql(bytes: Option<&DB::RawValue>) -> deserialize::Result<Self> {
-        let string = String::from_sql(bytes)?;
+    fn from_sql(value: backend::RawValue<DB>) -> deserialize::Result<Self> {
+        let string = String::from_sql(value)?;
         Ok(Codec::from_str(&string)?)
     }
 }
 
-impl<DB> serialize::ToSql<Text, DB> for Codec
+impl serialize::ToSql<Text, Pg> for Codec
 where
-    DB: Backend,
-    str: serialize::ToSql<Text, DB>,
+    str: serialize::ToSql<Text, Pg>,
 {
-    fn to_sql<W: Write>(&self, out: &mut serialize::Output<W, DB>) -> serialize::Result {
-        self.to_string().as_str().to_sql(out)
+    fn to_sql<'b>(&self, out: &mut serialize::Output<'b, '_, Pg>) -> serialize::Result {
+        <str as serialize::ToSql<Text, Pg>>::to_sql(&self.to_string(), &mut out.reborrow())
     }
 }
 
@@ -90,51 +89,9 @@ pub async fn struct_to_binary(
     Ok(match codec {
         Codec::NONE => Vec::new(),
         Codec::CAYENNE_LPP => cayenne_lpp::encode(obj).context("CayenneLpp encode")?,
-        Codec::JS => js::encode(f_port, variables, encoder_config, obj)
-            .await
-            .context("JavaScript encoder")?,
+        Codec::JS => js::encode(f_port, variables, encoder_config, obj).await?,
     })
 }
-
-/*
-pub fn get_data_keys(s: &pbjson_types::Struct) -> Vec<String> {
-    let mut out: Vec<String> = Vec::new();
-
-    for (k, v) in &s.fields {
-        out.extend_from_slice(&_get_data_keys(k, v));
-    }
-
-    out
-}
-
-fn _get_data_keys(prefix: &str, v: &pbjson_types::Value) -> Vec<String> {
-    match &v.kind {
-        None => vec![prefix.to_string()],
-        Some(v) => match v {
-            pbjson_types::value::Kind::NullValue(_)
-            | pbjson_types::value::Kind::NumberValue(_)
-            | pbjson_types::value::Kind::StringValue(_)
-            | pbjson_types::value::Kind::BoolValue(_) => {
-                vec![prefix.to_string()]
-            }
-            pbjson_types::value::Kind::StructValue(v) => {
-                let mut out: Vec<String> = Vec::new();
-                for (k, v) in &v.fields {
-                    out.extend_from_slice(&_get_data_keys(&format!("{}_{}", prefix, k), v));
-                }
-                out
-            }
-            pbjson_types::value::Kind::ListValue(v) => {
-                let mut out: Vec<String> = Vec::new();
-                for (i, v) in v.values.iter().enumerate() {
-                    out.extend_from_slice(&_get_data_keys(&format!("{}_{}", prefix, i), v));
-                }
-                out
-            }
-        },
-    }
-}
-*/
 
 pub fn get_measurements(s: &pbjson_types::Struct) -> HashMap<String, pbjson_types::value::Kind> {
     let mut out: HashMap<String, pbjson_types::value::Kind> = HashMap::new();

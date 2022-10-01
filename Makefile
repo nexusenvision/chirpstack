@@ -1,18 +1,8 @@
 .PHONY: dist api
 
-# Builds a debug / development binary.
-build-debug:
-	docker-compose run --rm chirpstack make debug
-
-# Builds a release binary.
-build-release:
-	docker-compose run --rm chirpstack make release
-
 # Build distributable binaries.
 dist:
-	# The pull is needed as else the specified platform is not respected.
-	docker-compose pull chirpstack-build-amd64 && docker-compose run --rm chirpstack-build-amd64 make dist
-	docker-compose pull chirpstack-build-arm64 && docker-compose run --rm chirpstack-build-arm64 make dist
+	docker-compose run --rm --no-deps chirpstack make dist
 
 # Set the versions
 version:
@@ -25,21 +15,28 @@ version:
 	sed -i 's/"version.*/"version": "$(VERSION)",/g' ./api/js/package.json
 	sed -i 's/version.*/version = "$(VERSION)",/g' ./api/python/src/setup.py
 	sed -i 's/^version.*/version = "$(VERSION)"/g' ./api/rust/Cargo.toml
+	cd api && make
+	make build-ui
+	make test
+	git add .
+	git commit -v -m "Bump version to $(VERSION)"
+	git tag -a v$(VERSION) -m "v$(VERSION)"
+	git tag -a api/go/v$(VERSION) -m "api/go/v$(VERSION)"
 
 api: version
 	cd api && make
 
 # Builds the UI.
 build-ui:
-	docker-compose run --rm chirpstack-ui make build
+	docker-compose run --rm --no-deps chirpstack-ui make build
 
 # Enters the devshell for ChirpStack development.
 devshell:
-	docker-compose run --rm --service-ports chirpstack bash
+	docker-compose run --rm --service-ports --name chirpstack chirpstack bash
 
 # Enters the devshell for ChirpStack UI development.
 devshell-ui:
-	docker-compose run --rm --service-ports chirpstack-ui bash
+	docker-compose run --rm --service-ports --name chirpstack-ui chirpstack-ui bash
 
 # Runs the tests
 test:
@@ -52,5 +49,5 @@ test-server: build-ui
 
 # Update the Docker development images
 update-images:
-	docker-compose pull chirpstack
+	docker-compose build chirpstack
 	docker-compose build chirpstack-ui

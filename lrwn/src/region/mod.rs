@@ -1,11 +1,10 @@
 use std::collections::{HashMap, HashSet};
 use std::fmt;
-use std::io::Write;
 use std::str::FromStr;
 use std::time::Duration;
 
 use anyhow::{Context, Result};
-use diesel::backend::Backend;
+use diesel::backend::{self, Backend};
 use diesel::sql_types::Text;
 use diesel::{deserialize, serialize};
 use serde::{Deserialize, Serialize};
@@ -28,7 +27,7 @@ pub mod us915;
 
 #[derive(Deserialize, Serialize, Copy, Clone, Debug, Eq, PartialEq, AsExpression, FromSqlRow)]
 #[allow(non_camel_case_types)]
-#[sql_type = "diesel::sql_types::Text"]
+#[diesel(sql_type = diesel::sql_types::Text)]
 pub enum CommonName {
     EU868,
     US915,
@@ -52,24 +51,29 @@ impl fmt::Display for CommonName {
     }
 }
 
-impl<ST, DB> deserialize::FromSql<ST, DB> for CommonName
+impl<DB> deserialize::FromSql<Text, DB> for CommonName
 where
     DB: Backend,
-    *const str: deserialize::FromSql<ST, DB>,
+    *const str: deserialize::FromSql<Text, DB>,
 {
-    fn from_sql(bytes: Option<&DB::RawValue>) -> deserialize::Result<Self> {
-        let string = String::from_sql(bytes)?;
+    fn from_sql(value: backend::RawValue<DB>) -> deserialize::Result<Self> {
+        let string = String::from_sql(value)?;
         Ok(CommonName::from_str(&string)?)
     }
 }
 
-impl<DB> serialize::ToSql<Text, DB> for CommonName
+impl serialize::ToSql<Text, diesel::pg::Pg> for CommonName
 where
-    DB: Backend,
-    str: serialize::ToSql<Text, DB>,
+    str: serialize::ToSql<Text, diesel::pg::Pg>,
 {
-    fn to_sql<W: Write>(&self, out: &mut serialize::Output<W, DB>) -> serialize::Result {
-        self.to_string().as_str().to_sql(out)
+    fn to_sql<'b>(
+        &'b self,
+        out: &mut serialize::Output<'b, '_, diesel::pg::Pg>,
+    ) -> serialize::Result {
+        <str as serialize::ToSql<Text, diesel::pg::Pg>>::to_sql(
+            &self.to_string(),
+            &mut out.reborrow(),
+        )
     }
 }
 
@@ -101,7 +105,7 @@ impl FromStr for CommonName {
 
 #[allow(non_camel_case_types)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash, AsExpression, FromSqlRow)]
-#[sql_type = "diesel::sql_types::Text"]
+#[diesel(sql_type = diesel::sql_types::Text)]
 pub enum Revision {
     Latest,
     A,
@@ -155,30 +159,35 @@ impl FromStr for Revision {
     }
 }
 
-impl<ST, DB> deserialize::FromSql<ST, DB> for Revision
+impl<DB> deserialize::FromSql<Text, DB> for Revision
 where
     DB: Backend,
-    *const str: deserialize::FromSql<ST, DB>,
+    *const str: deserialize::FromSql<Text, DB>,
 {
-    fn from_sql(bytes: Option<&DB::RawValue>) -> deserialize::Result<Self> {
-        let string = String::from_sql(bytes)?;
+    fn from_sql(value: backend::RawValue<DB>) -> deserialize::Result<Self> {
+        let string = String::from_sql(value)?;
         Ok(Revision::from_str(&string)?)
     }
 }
 
-impl<DB> serialize::ToSql<Text, DB> for Revision
+impl serialize::ToSql<Text, diesel::pg::Pg> for Revision
 where
-    DB: Backend,
-    str: serialize::ToSql<Text, DB>,
+    str: serialize::ToSql<Text, diesel::pg::Pg>,
 {
-    fn to_sql<W: Write>(&self, out: &mut serialize::Output<W, DB>) -> serialize::Result {
-        self.to_string().as_str().to_sql(out)
+    fn to_sql<'b>(
+        &'b self,
+        out: &mut serialize::Output<'b, '_, diesel::pg::Pg>,
+    ) -> serialize::Result {
+        <str as serialize::ToSql<Text, diesel::pg::Pg>>::to_sql(
+            &self.to_string(),
+            &mut out.reborrow(),
+        )
     }
 }
 
 #[allow(non_camel_case_types)]
 #[derive(Copy, Clone, PartialEq, Eq, Hash, AsExpression, FromSqlRow)]
-#[sql_type = "diesel::sql_types::Text"]
+#[diesel(sql_type = diesel::sql_types::Text)]
 pub enum MacVersion {
     Latest,
     LORAWAN_1_0_0,
@@ -219,12 +228,12 @@ impl FromStr for MacVersion {
 
     fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
         Ok(match s {
-            "1.0.0" => MacVersion::LORAWAN_1_0_0,
+            "1.0.0" | "1.0" => MacVersion::LORAWAN_1_0_0,
             "1.0.1" => MacVersion::LORAWAN_1_0_1,
             "1.0.2" => MacVersion::LORAWAN_1_0_2,
             "1.0.3" => MacVersion::LORAWAN_1_0_3,
             "1.0.4" => MacVersion::LORAWAN_1_0_4,
-            "1.1.0" => MacVersion::LORAWAN_1_1_0,
+            "1.1.0" | "1.1" => MacVersion::LORAWAN_1_1_0,
             _ => {
                 return Err(anyhow!("Unexpected MacVersion: {}", s));
             }
@@ -232,24 +241,29 @@ impl FromStr for MacVersion {
     }
 }
 
-impl<ST, DB> deserialize::FromSql<ST, DB> for MacVersion
+impl<DB> deserialize::FromSql<Text, DB> for MacVersion
 where
     DB: Backend,
-    *const str: deserialize::FromSql<ST, DB>,
+    *const str: deserialize::FromSql<Text, DB>,
 {
-    fn from_sql(bytes: Option<&DB::RawValue>) -> deserialize::Result<Self> {
-        let string = String::from_sql(bytes)?;
+    fn from_sql(value: backend::RawValue<DB>) -> deserialize::Result<Self> {
+        let string = String::from_sql(value)?;
         Ok(MacVersion::from_str(&string)?)
     }
 }
 
-impl<DB> serialize::ToSql<Text, DB> for MacVersion
+impl serialize::ToSql<Text, diesel::pg::Pg> for MacVersion
 where
-    DB: Backend,
-    str: serialize::ToSql<Text, DB>,
+    str: serialize::ToSql<Text, diesel::pg::Pg>,
 {
-    fn to_sql<W: Write>(&self, out: &mut serialize::Output<W, DB>) -> serialize::Result {
-        self.to_string().as_str().to_sql(out)
+    fn to_sql<'b>(
+        &'b self,
+        out: &mut serialize::Output<'b, '_, diesel::pg::Pg>,
+    ) -> serialize::Result {
+        <str as serialize::ToSql<Text, diesel::pg::Pg>>::to_sql(
+            &self.to_string(),
+            &mut out.reborrow(),
+        )
     }
 }
 
@@ -458,7 +472,7 @@ impl RegionBaseConfig {
         Ok(self
             .data_rates
             .get(&dr)
-            .ok_or(anyhow!("Unknown data-rate index"))?
+            .ok_or_else(|| anyhow!("Unknown data-rate index"))?
             .modulation
             .clone())
     }
@@ -474,35 +488,38 @@ impl RegionBaseConfig {
             None => self
                 .max_payload_size_per_dr
                 .get(&MacVersion::Latest)
-                .ok_or(anyhow!("Unknown mac-version"))?,
+                .ok_or_else(|| anyhow!("Unknown mac-version"))?,
         };
 
         let dr_map = match reg_params_map.get(&reg_params_revision) {
             Some(v) => v,
             None => reg_params_map
                 .get(&Revision::Latest)
-                .ok_or(anyhow!("Unknown revision"))?,
+                .ok_or_else(|| anyhow!("Unknown revision"))?,
         };
 
-        Ok(dr_map.get(&dr).ok_or(anyhow!("Invalid data-rate"))?.clone())
+        Ok(dr_map
+            .get(&dr)
+            .ok_or_else(|| anyhow!("Invalid data-rate"))?
+            .clone())
     }
 
     fn get_rx1_data_rate_index(&self, uplink_dr: u8, rx1_dr_offset: usize) -> Result<u8> {
         let offset_vec = self
             .rx1_data_rate_table
             .get(&uplink_dr)
-            .ok_or(anyhow!("Unknown data-rate"))?;
+            .ok_or_else(|| anyhow!("Unknown data-rate"))?;
 
         Ok(*offset_vec
             .get(rx1_dr_offset)
-            .ok_or(anyhow!("Invalid rx1 data-rate offset"))?)
+            .ok_or_else(|| anyhow!("Invalid rx1 data-rate offset"))?)
     }
 
     fn get_tx_power_offset(&self, tx_power: usize) -> Result<isize> {
         Ok(*self
             .tx_power_offsets
             .get(tx_power)
-            .ok_or(anyhow!("Invalid tx-power"))?)
+            .ok_or_else(|| anyhow!("Invalid tx-power"))?)
     }
 
     fn add_channel(&mut self, frequency: u32, min_dr: u8, max_dr: u8) -> Result<()> {
@@ -530,7 +547,7 @@ impl RegionBaseConfig {
         Ok(self
             .uplink_channels
             .get(channel)
-            .ok_or(anyhow!("Invalid channel"))?
+            .ok_or_else(|| anyhow!("Invalid channel"))?
             .clone())
     }
 
@@ -575,7 +592,7 @@ impl RegionBaseConfig {
         Ok(self
             .downlink_channels
             .get(channel)
-            .ok_or(anyhow!("Invalid channel"))?
+            .ok_or_else(|| anyhow!("Invalid channel"))?
             .clone())
     }
 
@@ -583,7 +600,7 @@ impl RegionBaseConfig {
         let mut channel = self
             .uplink_channels
             .get_mut(channel)
-            .ok_or(anyhow!("Invalid channel"))?;
+            .ok_or_else(|| anyhow!("Invalid channel"))?;
         channel.enabled = false;
         Ok(())
     }
@@ -592,7 +609,7 @@ impl RegionBaseConfig {
         let mut channel = self
             .uplink_channels
             .get_mut(channel)
-            .ok_or(anyhow!("Invalid channel"))?;
+            .ok_or_else(|| anyhow!("Invalid channel"))?;
         channel.enabled = true;
         Ok(())
     }

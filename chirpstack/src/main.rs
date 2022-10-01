@@ -1,7 +1,6 @@
 #![allow(dead_code)]
 #[macro_use]
 extern crate lazy_static;
-#[macro_use]
 extern crate diesel_migrations;
 #[macro_use]
 extern crate diesel;
@@ -52,7 +51,7 @@ async fn main() -> Result<()> {
         .arg(
             Arg::with_name("config-dir")
                 .required(true)
-                .short("c")
+                .short('c')
                 .long("config-dir")
                 .value_name("DIR")
                 .multiple(false)
@@ -80,7 +79,7 @@ async fn main() -> Result<()> {
                 .arg(
                     Arg::with_name("dir")
                         .required(true)
-                        .short("d")
+                        .short('d')
                         .long("dir")
                         .value_name("DIR")
                         .multiple(false)
@@ -91,8 +90,8 @@ async fn main() -> Result<()> {
         )
         .get_matches();
 
-    let config_dir = matches.value_of_lossy("config-dir").unwrap();
-    config::load(Path::new(config_dir.as_ref()))?;
+    let config_dir = matches.get_one::<String>("config-dir").unwrap();
+    config::load(Path::new(&config_dir))?;
 
     let conf = config::get();
     let filter = filter::Targets::new().with_targets(vec![
@@ -112,16 +111,16 @@ async fn main() -> Result<()> {
     }
 
     if let Some(v) = matches.subcommand_matches("print-ds") {
-        let dev_eui = v.value_of_lossy("dev-eui").unwrap();
-        let dev_eui = EUI64::from_str(&dev_eui).unwrap();
+        let dev_eui = v.get_one::<String>("dev-eui").unwrap();
+        let dev_eui = EUI64::from_str(dev_eui).unwrap();
 
         cmd::print_ds::run(&dev_eui).await.unwrap();
         process::exit(0);
     }
 
     if let Some(v) = matches.subcommand_matches("import-ttn-lorawan-devices") {
-        let dir = v.value_of_lossy("dir").unwrap();
-        cmd::import_ttn_lorawan_devices::run(Path::new(&*dir))
+        let dir = v.get_one::<String>("dir").unwrap();
+        cmd::import_ttn_lorawan_devices::run(Path::new(dir))
             .await
             .unwrap();
         process::exit(0);

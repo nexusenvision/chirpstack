@@ -279,7 +279,7 @@ impl GatewayService for Gateway {
         let start = SystemTime::try_from(
             req.start
                 .as_ref()
-                .ok_or(anyhow!("start is None"))
+                .ok_or_else(|| anyhow!("start is None"))
                 .map_err(|e| e.status())?
                 .clone(),
         )
@@ -288,7 +288,7 @@ impl GatewayService for Gateway {
         let end = SystemTime::try_from(
             req.end
                 .as_ref()
-                .ok_or(anyhow!("end is None"))
+                .ok_or_else(|| anyhow!("end is None"))
                 .map_err(|e| e.status())?
                 .clone(),
         )
@@ -326,6 +326,7 @@ impl GatewayService for Gateway {
                         .map(|row| row.metrics.get("rx_count").cloned().unwrap_or(0.0) as f32)
                         .collect(),
                 }],
+                kind: common::MetricKind::Absolute.into(),
             }),
             tx_packets: Some(common::Metric {
                 name: "Transmitted".to_string(),
@@ -344,6 +345,7 @@ impl GatewayService for Gateway {
                         .map(|row| row.metrics.get("tx_count").cloned().unwrap_or(0.0) as f32)
                         .collect(),
                 }],
+                kind: common::MetricKind::Absolute.into(),
             }),
             tx_packets_per_freq: Some({
                 // discover all data-sets
@@ -381,6 +383,7 @@ impl GatewayService for Gateway {
                                 .collect(),
                         })
                         .collect(),
+                    kind: common::MetricKind::Absolute.into(),
                 }
             }),
             rx_packets_per_freq: Some({
@@ -419,6 +422,7 @@ impl GatewayService for Gateway {
                                 .collect(),
                         })
                         .collect(),
+                    kind: common::MetricKind::Absolute.into(),
                 }
             }),
             rx_packets_per_dr: Some({
@@ -457,6 +461,7 @@ impl GatewayService for Gateway {
                                 .collect(),
                         })
                         .collect(),
+                    kind: common::MetricKind::Absolute.into(),
                 }
             }),
             tx_packets_per_dr: Some({
@@ -495,6 +500,7 @@ impl GatewayService for Gateway {
                                 .collect(),
                         })
                         .collect(),
+                    kind: common::MetricKind::Absolute.into(),
                 }
             }),
             tx_packets_per_status: Some({
@@ -533,6 +539,7 @@ impl GatewayService for Gateway {
                                 .collect(),
                         })
                         .collect(),
+                    kind: common::MetricKind::Absolute.into(),
                 }
             }),
         };
@@ -781,6 +788,7 @@ pub mod test {
                     label: "rx_count".to_string(),
                     data: vec![10.0],
                 }],
+                kind: common::MetricKind::Absolute.into(),
             }),
             stats_resp.rx_packets
         );

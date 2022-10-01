@@ -581,7 +581,7 @@ impl DeviceService for Device {
         let start = SystemTime::try_from(
             req.start
                 .as_ref()
-                .ok_or(anyhow!("start is None"))
+                .ok_or_else(|| anyhow!("start is None"))
                 .map_err(|e| e.status())?
                 .clone(),
         )
@@ -590,7 +590,7 @@ impl DeviceService for Device {
         let end = SystemTime::try_from(
             req.end
                 .as_ref()
-                .ok_or(anyhow!("end is None"))
+                .ok_or_else(|| anyhow!("end is None"))
                 .map_err(|e| e.status())?
                 .clone(),
         )
@@ -664,6 +664,13 @@ impl DeviceService for Device {
                                     })
                                     .collect(),
                             }],
+                            kind: match v.kind {
+                                fields::MeasurementKind::COUNTER => common::MetricKind::Counter,
+                                fields::MeasurementKind::ABSOLUTE => common::MetricKind::Absolute,
+                                fields::MeasurementKind::GAUGE => common::MetricKind::Gauge,
+                                _ => common::MetricKind::Gauge,
+                            }
+                            .into(),
                         },
                     );
                 }
@@ -690,7 +697,7 @@ impl DeviceService for Device {
         let start = SystemTime::try_from(
             req.start
                 .as_ref()
-                .ok_or(anyhow!("start is None"))
+                .ok_or_else(|| anyhow!("start is None"))
                 .map_err(|e| e.status())?
                 .clone(),
         )
@@ -699,7 +706,7 @@ impl DeviceService for Device {
         let end = SystemTime::try_from(
             req.end
                 .as_ref()
-                .ok_or(anyhow!("end is None"))
+                .ok_or_else(|| anyhow!("end is None"))
                 .map_err(|e| e.status())?
                 .clone(),
         )
@@ -737,6 +744,7 @@ impl DeviceService for Device {
                         .map(|row| row.metrics.get("rx_count").cloned().unwrap_or(0.0) as f32)
                         .collect(),
                 }],
+                kind: common::MetricKind::Absolute.into(),
             }),
             gw_rssi: Some(common::Metric {
                 name: "RSSI".to_string(),
@@ -763,6 +771,7 @@ impl DeviceService for Device {
                         })
                         .collect(),
                 }],
+                kind: common::MetricKind::Absolute.into(),
             }),
             gw_snr: Some(common::Metric {
                 name: "SNR".to_string(),
@@ -789,6 +798,7 @@ impl DeviceService for Device {
                         })
                         .collect(),
                 }],
+                kind: common::MetricKind::Absolute.into(),
             }),
             rx_packets_per_freq: Some({
                 // discover all data-sets
@@ -826,6 +836,7 @@ impl DeviceService for Device {
                                 .collect(),
                         })
                         .collect(),
+                    kind: common::MetricKind::Absolute.into(),
                 }
             }),
             rx_packets_per_dr: Some({
@@ -864,6 +875,7 @@ impl DeviceService for Device {
                                 .collect(),
                         })
                         .collect(),
+                    kind: common::MetricKind::Absolute.into(),
                 }
             }),
             errors: Some({
@@ -902,6 +914,7 @@ impl DeviceService for Device {
                                 .collect(),
                         })
                         .collect(),
+                    kind: common::MetricKind::Absolute.into(),
                 }
             }),
         };

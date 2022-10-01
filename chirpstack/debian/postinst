@@ -3,18 +3,11 @@
 # Set config-file permissions
 chown -R chirpstack:chirpstack /etc/chirpstack
 chmod 750 /etc/chirpstack
-chmod 750 /etc/chirpstack/certs
 chmod 640 /etc/chirpstack/*.toml
 
-# Generate certificates
-CERTROOT=/etc/chirpstack/certs
-
-if [ ! -f $CERTROOT/ca.pem ]; then
-	cfssl gencert -initca $CERTROOT/ca-csr.json | cfssljson -bare $CERTROOT/ca
-fi
-
-if [ ! -f $CERTROOT/mqtt-server.pem ]; then
-	cfssl gencert -ca $CERTROOT/ca.pem -ca-key $CERTROOT/ca-key.pem -config $CERTROOT/ca-config.json -profile server $CERTROOT/mqtt-server.json | cfssljson -bare $CERTROOT/mqtt-server
-fi
+# Set environment variables to localhost
+sed -i "s/\$MQTT_BROKER_HOST/localhost/" /etc/chirpstack/*.toml
+sed -i "s/\$POSTGRESQL_HOST/localhost/" /etc/chirpstack/*.toml
+sed -i "s/\$REDIS_HOST/localhost/" /etc/chirpstack/*.toml
 
 #DEBHELPER#

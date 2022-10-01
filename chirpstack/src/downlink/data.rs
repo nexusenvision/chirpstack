@@ -142,15 +142,15 @@ impl Data {
             ctx.update_device_queue_item().await?;
             ctx.save_downlink_frame().await?;
             if ctx._is_roaming() {
+                ctx.save_device_session().await?;
                 ctx.send_downlink_frame_passive_roaming().await?;
                 ctx.handle_passive_roaming_tx_ack().await?;
             } else {
+                // Some mac-commands set their state (e.g. last requested) to the device-session.
+                ctx.save_device_session().await?;
                 ctx.send_downlink_frame().await?;
             }
         }
-
-        // Some mac-commands set their state (e.g. last requested) to the device-session.
-        ctx.save_device_session().await?;
 
         Ok(())
     }
@@ -304,7 +304,7 @@ impl Data {
                 device_name: self.device.name.clone(),
                 dev_eui: self.device.dev_eui.to_string(),
                 tags: {
-                    let mut tags = (&*self.device_profile.tags).clone();
+                    let mut tags = (*self.device_profile.tags).clone();
                     tags.extend((*self.device.tags).clone());
                     tags
                 },
@@ -388,6 +388,8 @@ impl Data {
         self._set_ping_slot_parameters().await?;
         self._set_rx_parameters().await?;
         self._set_tx_parameters().await?;
+
+        self.mac_commands = filter_mac_commands(&self.device_session, &self.mac_commands);
 
         Ok(())
     }
@@ -555,6 +557,19 @@ impl Data {
                     phy.encrypt_frm_payload(&app_s_key)
                         .context("Encrypt frm_payload application payload")?;
                 }
+            }
+
+            // Encrypt f_opts mac-commands (LoRaWAN 1.1)
+            if !self
+                .device_session
+                .mac_version()
+                .to_string()
+                .starts_with("1.0")
+            {
+                phy.encrypt_f_opts(&lrwn::AES128Key::from_slice(
+                    &self.device_session.nwk_s_enc_key,
+                )?)
+                .context("Encrypt f_opts")?;
             }
 
             // Set MIC.
@@ -807,6 +822,7 @@ impl Data {
     // Note: this must come before ADR!
     async fn _request_channel_mask_reconfiguration(&mut self) -> Result<()> {
         trace!("Requesting channel-mask reconfiguration");
+
         let enabled_uplink_channel_indices: Vec<usize> = self
             .device_session
             .enabled_uplink_channel_indices
@@ -1406,5 +1422,235 @@ impl Data {
         }
 
         Ok(false)
+    }
+}
+
+fn filter_mac_commands(
+    device_session: &internal::DeviceSession,
+    mac_commands: &[lrwn::MACCommandSet],
+) -> Vec<lrwn::MACCommandSet> {
+    let incompatible_macs: HashMap<lrwn::CID, Vec<lrwn::CID>> = [
+        (lrwn::CID::NewChannelReq, vec![lrwn::CID::LinkADRReq]),
+        (lrwn::CID::LinkADRReq, vec![lrwn::CID::NewChannelReq]),
+    ]
+    .iter()
+    .cloned()
+    .collect();
+
+    let mut filtered_mac_commands: Vec<lrwn::MACCommandSet> = Vec::new();
+
+    'outer: for mac_command_set in mac_commands {
+        for mac_command in &**mac_command_set {
+            // Check if it doesn't exceed the max error error count.
+            if device_session
+                .mac_command_error_count
+                .get(&(mac_command.cid().byte() as u32))
+                .cloned()
+                .unwrap_or_default()
+                > 1
+            {
+                continue 'outer;
+            }
+
+            // Check if there aren't any conflicting mac-commands.
+            if let Some(incompatible_cids) = incompatible_macs.get(&mac_command.cid()) {
+                for mac_command_set in &filtered_mac_commands {
+                    for mac_command in &**mac_command_set {
+                        if incompatible_cids.contains(&mac_command.cid()) {
+                            continue 'outer;
+                        }
+                    }
+                }
+            }
+        }
+
+        filtered_mac_commands.push(mac_command_set.clone());
+    }
+
+    filtered_mac_commands
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    struct Test {
+        device_session: internal::DeviceSession,
+        mac_commands: Vec<lrwn::MACCommandSet>,
+        expected_mac_commands: Vec<lrwn::MACCommandSet>,
+    }
+
+    #[test]
+    fn test_filter_mac_commands() {
+        let tests = vec![
+            // No mac-commands set.
+            Test {
+                device_session: internal::DeviceSession {
+                    ..Default::default()
+                },
+                mac_commands: Vec::new(),
+                expected_mac_commands: Vec::new(),
+            },
+            // One LinkADRReq, no errors.
+            Test {
+                device_session: internal::DeviceSession {
+                    mac_command_error_count: [(lrwn::CID::LinkADRReq.byte() as u32, 0)]
+                        .iter()
+                        .cloned()
+                        .collect(),
+                    ..Default::default()
+                },
+                mac_commands: vec![lrwn::MACCommandSet::new(vec![
+                    lrwn::MACCommand::LinkADRReq(lrwn::LinkADRReqPayload {
+                        dr: 0,
+                        tx_power: 0,
+                        ch_mask: lrwn::ChMask::new([false; 16]),
+                        redundancy: lrwn::Redundancy {
+                            ch_mask_cntl: 0,
+                            nb_rep: 0,
+                        },
+                    }),
+                ])],
+                expected_mac_commands: vec![lrwn::MACCommandSet::new(vec![
+                    lrwn::MACCommand::LinkADRReq(lrwn::LinkADRReqPayload {
+                        dr: 0,
+                        tx_power: 0,
+                        ch_mask: lrwn::ChMask::new([false; 16]),
+                        redundancy: lrwn::Redundancy {
+                            ch_mask_cntl: 0,
+                            nb_rep: 0,
+                        },
+                    }),
+                ])],
+            },
+            // One LinkADRReq, 0 errors (HashMap contains the CID, but count = 0).
+            Test {
+                device_session: internal::DeviceSession {
+                    mac_command_error_count: [(lrwn::CID::LinkADRReq.byte() as u32, 0)]
+                        .iter()
+                        .cloned()
+                        .collect(),
+                    ..Default::default()
+                },
+                mac_commands: vec![lrwn::MACCommandSet::new(vec![
+                    lrwn::MACCommand::LinkADRReq(lrwn::LinkADRReqPayload {
+                        dr: 0,
+                        tx_power: 0,
+                        ch_mask: lrwn::ChMask::new([false; 16]),
+                        redundancy: lrwn::Redundancy {
+                            ch_mask_cntl: 0,
+                            nb_rep: 0,
+                        },
+                    }),
+                ])],
+                expected_mac_commands: vec![lrwn::MACCommandSet::new(vec![
+                    lrwn::MACCommand::LinkADRReq(lrwn::LinkADRReqPayload {
+                        dr: 0,
+                        tx_power: 0,
+                        ch_mask: lrwn::ChMask::new([false; 16]),
+                        redundancy: lrwn::Redundancy {
+                            ch_mask_cntl: 0,
+                            nb_rep: 0,
+                        },
+                    }),
+                ])],
+            },
+            // One LinkADRReq, exceeding error count.
+            Test {
+                device_session: internal::DeviceSession {
+                    mac_command_error_count: [(lrwn::CID::LinkADRReq.byte() as u32, 2)]
+                        .iter()
+                        .cloned()
+                        .collect(),
+                    ..Default::default()
+                },
+                mac_commands: vec![lrwn::MACCommandSet::new(vec![
+                    lrwn::MACCommand::LinkADRReq(lrwn::LinkADRReqPayload {
+                        dr: 0,
+                        tx_power: 0,
+                        ch_mask: lrwn::ChMask::new([false; 16]),
+                        redundancy: lrwn::Redundancy {
+                            ch_mask_cntl: 0,
+                            nb_rep: 0,
+                        },
+                    }),
+                ])],
+                expected_mac_commands: Vec::new(),
+            },
+            // NewChannelReq + LinkADRReq
+            Test {
+                device_session: Default::default(),
+                mac_commands: vec![
+                    lrwn::MACCommandSet::new(vec![lrwn::MACCommand::NewChannelReq(
+                        lrwn::NewChannelReqPayload {
+                            ch_index: 3,
+                            freq: 867100000,
+                            min_dr: 0,
+                            max_dr: 5,
+                        },
+                    )]),
+                    lrwn::MACCommandSet::new(vec![lrwn::MACCommand::LinkADRReq(
+                        lrwn::LinkADRReqPayload {
+                            dr: 0,
+                            tx_power: 0,
+                            ch_mask: lrwn::ChMask::new([false; 16]),
+                            redundancy: lrwn::Redundancy {
+                                ch_mask_cntl: 0,
+                                nb_rep: 0,
+                            },
+                        },
+                    )]),
+                ],
+                expected_mac_commands: vec![lrwn::MACCommandSet::new(vec![
+                    lrwn::MACCommand::NewChannelReq(lrwn::NewChannelReqPayload {
+                        ch_index: 3,
+                        freq: 867100000,
+                        min_dr: 0,
+                        max_dr: 5,
+                    }),
+                ])],
+            },
+            // LinkADRReq + NewChannelReq (this order should never happen)
+            Test {
+                device_session: Default::default(),
+                mac_commands: vec![
+                    lrwn::MACCommandSet::new(vec![lrwn::MACCommand::LinkADRReq(
+                        lrwn::LinkADRReqPayload {
+                            dr: 0,
+                            tx_power: 0,
+                            ch_mask: lrwn::ChMask::new([false; 16]),
+                            redundancy: lrwn::Redundancy {
+                                ch_mask_cntl: 0,
+                                nb_rep: 0,
+                            },
+                        },
+                    )]),
+                    lrwn::MACCommandSet::new(vec![lrwn::MACCommand::NewChannelReq(
+                        lrwn::NewChannelReqPayload {
+                            ch_index: 3,
+                            freq: 867100000,
+                            min_dr: 0,
+                            max_dr: 5,
+                        },
+                    )]),
+                ],
+                expected_mac_commands: vec![lrwn::MACCommandSet::new(vec![
+                    lrwn::MACCommand::LinkADRReq(lrwn::LinkADRReqPayload {
+                        dr: 0,
+                        tx_power: 0,
+                        ch_mask: lrwn::ChMask::new([false; 16]),
+                        redundancy: lrwn::Redundancy {
+                            ch_mask_cntl: 0,
+                            nb_rep: 0,
+                        },
+                    }),
+                ])],
+            },
+        ];
+
+        for test in &tests {
+            let out = filter_mac_commands(&test.device_session, &test.mac_commands);
+            assert_eq!(test.expected_mac_commands, out);
+        }
     }
 }

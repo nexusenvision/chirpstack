@@ -9,9 +9,9 @@ pub fn handle(
     dev: &device::Device,
     block: &lrwn::MACCommandSet,
 ) -> Result<Option<lrwn::MACCommandSet>> {
-    let block_mac = (&**block)
+    let block_mac = (**block)
         .first()
-        .ok_or(anyhow!("MACCommandSet is empty"))?;
+        .ok_or_else(|| anyhow!("MACCommandSet is empty"))?;
 
     let req_pl = if let lrwn::MACCommand::RekeyInd(pl) = block_mac {
         pl

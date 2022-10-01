@@ -104,7 +104,7 @@ impl JoinRequest {
         ctx.set_pr_start_ans_payload()?;
 
         ctx.pr_start_ans
-            .ok_or(anyhow!("PRStartAnsPayload is not set"))
+            .ok_or_else(|| anyhow!("PRStartAnsPayload is not set"))
     }
 
     fn get_join_request_payload(&mut self) -> Result<()> {
@@ -171,7 +171,7 @@ impl JoinRequest {
         let dp = self.device_profile.as_ref().unwrap();
         let dev = self.device.as_ref().unwrap();
 
-        let mut tags = (&*dp.tags).clone();
+        let mut tags = (*dp.tags).clone();
         tags.extend((*dev.tags).clone());
 
         self.device_info = Some(integration_pb::DeviceInfo {

@@ -1,11 +1,11 @@
 use std::collections::hash_map::DefaultHasher;
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
+use std::str::FromStr;
 
 use anyhow::{Context, Result};
 use chrono::{DateTime, Local};
 use tracing::{error, info, span, trace, Instrument, Level};
-use uuid::Uuid;
 
 use crate::gateway::backend as gateway_backend;
 use crate::storage::{gateway, metrics};
@@ -14,7 +14,6 @@ use chirpstack_api::{common, gw};
 use lrwn::EUI64;
 
 pub struct Stats {
-    id: Uuid,
     gateway_id: EUI64,
     stats: gw::GatewayStats,
     gateway: Option<gateway::Gateway>,
@@ -22,22 +21,28 @@ pub struct Stats {
 
 impl Stats {
     pub async fn handle(s: gw::GatewayStats) {
-        let id = match Uuid::from_slice(&s.stats_id) {
+        let gateway_id = match if !s.gateway_id.is_empty() {
+            EUI64::from_str(&s.gateway_id)
+        } else {
+            EUI64::from_slice(&s.gateway_id_legacy)
+        } {
             Ok(v) => v,
-            Err(_) => Uuid::nil(),
+            Err(e) => {
+                error!(error = %e, "Decode stats gateway_id error");
+                return;
+            }
         };
 
-        let span = span!(Level::INFO, "stats", stats_id = %id);
+        let span = span!(Level::INFO, "stats", gateway_id = %gateway_id);
 
-        if let Err(e) = Stats::_handle(id, s).instrument(span).await {
+        if let Err(e) = Stats::_handle(gateway_id, s).instrument(span).await {
             error!(error = %e, "Handle gateway stats error");
         }
     }
 
-    async fn _handle(id: Uuid, s: gw::GatewayStats) -> Result<()> {
+    async fn _handle(gateway_id: EUI64, s: gw::GatewayStats) -> Result<()> {
         let mut ctx = Stats {
-            id,
-            gateway_id: EUI64::from_slice(&s.gateway_id)?,
+            gateway_id,
             stats: s,
             gateway: None,
         };
@@ -91,7 +96,7 @@ impl Stats {
             .stats
             .meta_data
             .get("region_name")
-            .ok_or(anyhow!("No region_name in meta-data"))?;
+            .ok_or_else(|| anyhow!("No region_name in meta-data"))?;
 
         let tx_per_dr =
             per_modultation_to_per_dr(region_name, false, &self.stats.tx_packets_per_modulation)
@@ -180,13 +185,14 @@ impl Stats {
 
         let gw_conf = gw::GatewayConfiguration {
             gateway_id: self.stats.gateway_id.clone(),
+            gateway_id_legacy: self.stats.gateway_id_legacy.clone(),
             version: hash,
             channels: gateway_conf
                 .channels
                 .iter()
                 .map(|c| gw::ChannelConfiguration {
                     frequency: c.frequency,
-                    modulation: match c.modulation {
+                    modulation_legacy: match c.modulation {
                         config::GatewayChannelModulation::LORA => common::Modulation::Lora,
                         config::GatewayChannelModulation::FSK => common::Modulation::Fsk,
                     }
@@ -194,8 +200,9 @@ impl Stats {
                     modulation_config: Some(match c.modulation {
                         config::GatewayChannelModulation::LORA => {
                             gw::channel_configuration::ModulationConfig::LoraModulationConfig(
-                                gw::LoRaModulationConfig {
-                                    bandwidth: c.bandwidth / 1000,
+                                gw::LoraModulationConfig {
+                                    bandwidth_legacy: c.bandwidth / 1000,
+                                    bandwidth: c.bandwidth,
                                     spreading_factors: c.spreading_factors.clone(),
                                 },
                             )
@@ -203,7 +210,8 @@ impl Stats {
                         config::GatewayChannelModulation::FSK => {
                             gw::channel_configuration::ModulationConfig::FskModulationConfig(
                                 gw::FskModulationConfig {
-                                    bandwidth: c.bandwidth / 1000,
+                                    bandwidth_legacy: c.bandwidth / 1000,
+                                    bandwidth: c.bandwidth,
                                     bitrate: c.datarate,
                                 },
                             )
@@ -236,17 +244,17 @@ fn per_modultation_to_per_dr(
         let modu = item
             .modulation
             .as_ref()
-            .ok_or(anyhow!("modulation is None"))?;
+            .ok_or_else(|| anyhow!("modulation is None"))?;
         let params = modu
             .parameters
             .as_ref()
-            .ok_or(anyhow!("parameters is None"))?;
+            .ok_or_else(|| anyhow!("parameters is None"))?;
 
         let dr_modulation = match params {
             gw::modulation::Parameters::Lora(v) => {
                 lrwn::region::DataRateModulation::Lora(lrwn::region::LoraDataRate {
                     spreading_factor: v.spreading_factor as u8,
-                    bandwidth: v.bandwidth * 1000,
+                    bandwidth: v.bandwidth,
                 })
             }
             gw::modulation::Parameters::Fsk(v) => {
@@ -256,7 +264,7 @@ fn per_modultation_to_per_dr(
             }
             gw::modulation::Parameters::LrFhss(v) => {
                 lrwn::region::DataRateModulation::LrFhss(lrwn::region::LrFhssDataRate {
-                    coding_rate: v.code_rate.clone(),
+                    coding_rate: v.code_rate().into(),
                     occupied_channel_width: v.operating_channel_width,
                 })
             }

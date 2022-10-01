@@ -23,7 +23,9 @@ pub async fn handle(
     dev: &device::Device,
     block: &lrwn::MACCommandSet,
 ) -> Result<Option<lrwn::MACCommandSet>> {
-    let mac = (&**block).first().ok_or(anyhow!("Expected DevStatusAns"))?;
+    let mac = (**block)
+        .first()
+        .ok_or_else(|| anyhow!("Expected DevStatusAns"))?;
     if let lrwn::MACCommand::DevStatusAns(pl) = mac {
         info!(dev_eui = %dev.dev_eui, battery = pl.battery, margin = pl.margin, "DevStatusAns received");
 
@@ -32,7 +34,7 @@ pub async fn handle(
             pl.margin as i32,
             pl.battery == 0,
             if pl.battery > 0 && pl.battery < 255 {
-                let v: BigDecimal = ((pl.battery as f32) / 254.0 * 100.0).into();
+                let v: BigDecimal = ((pl.battery as f32) / 254.0 * 100.0).try_into()?;
                 Some(v.with_scale(2))
             } else {
                 None
@@ -40,7 +42,7 @@ pub async fn handle(
         )
         .await?;
 
-        let mut tags = (&*dp.tags).clone();
+        let mut tags = (*dp.tags).clone();
         tags.clone_from(&*dev.tags);
 
         let rx_time: DateTime<Utc> =

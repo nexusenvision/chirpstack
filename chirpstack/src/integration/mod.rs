@@ -62,6 +62,10 @@ pub async fn setup() -> Result<()> {
                     .await
                     .context("Setup AMQP integration")?,
             )),
+            "kafka" => integrations.push(Box::new(
+                kafka::Integration::new(&conf.integration.kafka)
+                    .context("Setup Kafka integration")?,
+            )),
             _ => {
                 return Err(anyhow!("Unexpected integration: {}", name));
             }
@@ -201,7 +205,7 @@ pub async fn uplink_event(
     }
 
     for e in join_all(futures).await {
-        let _ = e?;
+        e?;
     }
 
     Ok(())
@@ -226,7 +230,7 @@ pub async fn join_event(
     }
 
     for e in join_all(futures).await {
-        let _ = e?;
+        e?;
     }
 
     Ok(())
@@ -251,7 +255,7 @@ pub async fn ack_event(
     }
 
     for e in join_all(futures).await {
-        let _ = e?;
+        e?;
     }
 
     Ok(())
@@ -276,7 +280,7 @@ pub async fn txack_event(
     }
 
     for e in join_all(futures).await {
-        let _ = e?;
+        e?;
     }
 
     Ok(())
@@ -301,7 +305,7 @@ pub async fn log_event(
     }
 
     for e in join_all(futures).await {
-        let _ = e?;
+        e?;
     }
 
     Ok(())
@@ -326,7 +330,7 @@ pub async fn status_event(
     }
 
     for e in join_all(futures).await {
-        let _ = e?;
+        e?;
     }
 
     Ok(())
@@ -351,7 +355,7 @@ pub async fn location_event(
     }
 
     for e in join_all(futures).await {
-        let _ = e?;
+        e?;
     }
 
     Ok(())
@@ -376,7 +380,7 @@ pub async fn integration_event(
     }
 
     for e in join_all(futures).await {
-        let _ = e?;
+        e?;
     }
 
     Ok(())
@@ -423,7 +427,7 @@ async fn handle_down_command(application_id: String, pl: integration::DownlinkCo
             ..Default::default()
         };
 
-        let _ = device_queue::enqueue_item(qi).await?;
+        device_queue::enqueue_item(qi).await?;
 
         Ok(())
     }

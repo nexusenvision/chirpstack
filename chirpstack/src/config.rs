@@ -132,6 +132,7 @@ pub struct Gateway {
     pub client_cert_lifetime: Duration,
     pub ca_cert: String,
     pub ca_key: String,
+    pub allow_unknown_gateways: bool,
 }
 
 impl Default for Gateway {
@@ -140,6 +141,7 @@ impl Default for Gateway {
             client_cert_lifetime: Duration::from_secs(60 * 60 * 24 * 365),
             ca_cert: "".to_string(),
             ca_key: "".to_string(),
+            allow_unknown_gateways: false,
         }
     }
 }
@@ -151,6 +153,8 @@ pub struct Network {
     pub enabled_regions: Vec<String>,
     #[serde(with = "humantime_serde")]
     pub device_session_ttl: Duration,
+    #[serde(with = "humantime_serde")]
+    pub deduplication_delay: Duration,
     pub mac_commands_disabled: bool,
     pub adr_plugins: Vec<String>,
     pub scheduler: Scheduler,
@@ -162,6 +166,7 @@ impl Default for Network {
             net_id: NetID::from_be_bytes([0x00, 0x00, 0x00]),
             enabled_regions: vec!["eu868".into()],
             device_session_ttl: Duration::from_secs(60 * 60 * 24 * 31),
+            deduplication_delay: Duration::from_millis(200),
             mac_commands_disabled: false,
             adr_plugins: vec![],
             scheduler: Default::default(),
@@ -277,7 +282,7 @@ impl Default for MqttIntegration {
             username: "".into(),
             password: "".into(),
             qos: 0,
-            clean_session: true,
+            clean_session: false,
             client_id: "".into(),
             ca_cert: "".into(),
             tls_cert: "".into(),
@@ -493,6 +498,7 @@ pub struct Kek {
 pub struct Region {
     pub name: String,
     pub common_name: CommonName,
+    pub user_info: String,
     pub network: RegionNetwork,
     pub gateway: RegionGateway,
 }
@@ -502,6 +508,7 @@ impl Default for Region {
         Region {
             name: "eu868".to_string(),
             common_name: CommonName::EU868,
+            user_info: "".into(),
             network: RegionNetwork {
                 installation_margin: 10.0,
                 rx1_delay: 1,
@@ -529,7 +536,7 @@ impl Default for Region {
                         command_topic: "eu868/gateway/{{ gateway_id }}/command/{{ command }}"
                             .into(),
                         server: "tcp://127.0.0.1:1883".into(),
-                        clean_session: true,
+                        clean_session: false,
                         ..Default::default()
                     },
                 },

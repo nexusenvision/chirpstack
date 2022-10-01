@@ -38,9 +38,9 @@ pub fn handle(
         return Err(anyhow!("Expected pending TxParamSetupReq"));
     }
 
-    let req_mac = (&**pending.unwrap())
+    let req_mac = (**pending.unwrap())
         .first()
-        .ok_or(anyhow!("MACCommandSet is empty"))?;
+        .ok_or_else(|| anyhow!("MACCommandSet is empty"))?;
 
     let req_pl = if let lrwn::MACCommand::TxParamSetupReq(pl) = req_mac {
         pl

@@ -9,9 +9,9 @@ pub fn handle(
     ds: &mut internal::DeviceSession,
     block: &lrwn::MACCommandSet,
 ) -> Result<Option<lrwn::MACCommandSet>> {
-    let mac = (&**block)
+    let mac = (**block)
         .first()
-        .ok_or(anyhow!("MACCommandSet is empty"))?;
+        .ok_or_else(|| anyhow!("MACCommandSet is empty"))?;
 
     let pl = if let lrwn::MACCommand::PingSlotInfoReq(pl) = &mac {
         pl

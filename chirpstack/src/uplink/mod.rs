@@ -2,7 +2,6 @@ use std::collections::HashMap;
 use std::convert::{TryFrom, TryInto};
 use std::io::Cursor;
 use std::str::FromStr;
-use std::sync::RwLock;
 use std::time::{Duration, SystemTime};
 
 use anyhow::{Context, Result};
@@ -14,7 +13,7 @@ use uuid::Uuid;
 
 use crate::config;
 use crate::framelog;
-use crate::storage::{gateway, get_redis_conn, redis_key};
+use crate::storage::{error::Error as StorageError, gateway, get_redis_conn, redis_key};
 use chirpstack_api::{api, common, gw};
 use lrwn::region::CommonName;
 use lrwn::{MType, PhyPayload, EUI64};
@@ -28,10 +27,6 @@ pub mod join;
 pub mod join_fns;
 pub mod join_sns;
 pub mod stats;
-
-lazy_static! {
-    static ref DEDUPLICATION_DELAY: RwLock<Duration> = RwLock::new(Duration::from_millis(200));
-}
 
 #[derive(Clone)]
 pub struct UplinkFrameSet {
@@ -79,6 +74,7 @@ impl TryFrom<&UplinkFrameSet> for api::UplinkFrameLog {
                 _ => "".to_string(),
             },
             time: None, // is set below
+            plaintext_mac_commands: false,
         };
 
         for rx_info in &ufl.rx_info {
@@ -105,16 +101,6 @@ pub struct RoamingMetaData {
     pub ul_meta_data: backend::ULMetaData,
 }
 
-pub fn get_deduplication_delay() -> Duration {
-    let dur_r = DEDUPLICATION_DELAY.read().unwrap();
-    *dur_r
-}
-
-pub fn set_deduplication_delay(d: Duration) {
-    let mut dur_w = DEDUPLICATION_DELAY.write().unwrap();
-    *dur_w = d;
-}
-
 pub async fn deduplicate_uplink(event: gw::UplinkFrame) {
     if let Err(e) = _deduplicate_uplink(event).await {
         error!(error = %e, "Deduplication error");
@@ -131,7 +117,7 @@ async fn _deduplicate_uplink(event: gw::UplinkFrame) -> Result<()> {
     let key = redis_key(format!("up:collect:{}:{}", tx_info_str, phy_str));
     let lock_key = redis_key(format!("up:collect:{}:{}:lock", tx_info_str, phy_str));
 
-    let dedup_delay = get_deduplication_delay();
+    let dedup_delay = config::get().network.deduplication_delay;
     let mut dedup_ttl = dedup_delay * 2;
     if dedup_ttl < Duration::from_millis(200) {
         dedup_ttl = Duration::from_millis(200);
@@ -264,11 +250,11 @@ pub async fn handle_uplink(deduplication_id: Uuid, uplink: gw::UplinkFrameSet) -
 
     let region_name = rx_info
         .get_metadata_string("region_name")
-        .ok_or(anyhow!("No region_name in metadata"))?;
+        .ok_or_else(|| anyhow!("No region_name in metadata"))?;
 
     let common_name = rx_info
         .get_metadata_string("region_common_name")
-        .ok_or(anyhow!("No region_common_name in metadata"))?;
+        .ok_or_else(|| anyhow!("No region_common_name in metadata"))?;
 
     let common_name = CommonName::from_str(&common_name)?;
 
@@ -318,11 +304,19 @@ pub async fn handle_uplink(deduplication_id: Uuid, uplink: gw::UplinkFrameSet) -
 }
 
 async fn update_gateway_metadata(ufs: &mut UplinkFrameSet) -> Result<()> {
+    let conf = config::get();
     for rx_info in &mut ufs.rx_info_set {
         let gw_id = EUI64::from_str(&rx_info.gateway_id)?;
         let gw_meta = match gateway::get_meta(&gw_id).await {
             Ok(v) => v,
             Err(e) => {
+                if conf.gateway.allow_unknown_gateways {
+                    if let StorageError::NotFound(_) = e {
+                        ufs.gateway_private_map.insert(gw_id, false);
+                        continue;
+                    }
+                }
+
                 error!(
                     gateway_id = gw_id.to_string().as_str(),
                     error = format!("{}", e).as_str(),
@@ -332,7 +326,6 @@ async fn update_gateway_metadata(ufs: &mut UplinkFrameSet) -> Result<()> {
             }
         };
 
-        let mut rx_info = rx_info.clone();
         rx_info.location = Some(common::Location {
             latitude: gw_meta.latitude,
             longitude: gw_meta.longitude,
@@ -354,18 +347,18 @@ fn filter_rx_info_by_tenant_id(tenant_id: &Uuid, uplink: &mut UplinkFrameSet) ->
         let gateway_id = EUI64::from_str(&rx_info.gateway_id)?;
         let region_name = rx_info
             .get_metadata_string("region_name")
-            .ok_or(anyhow!("No region_name in rx_info metadata"))?;
+            .ok_or_else(|| anyhow!("No region_name in rx_info metadata"))?;
         let force_gws_private = config::get_force_gws_private(&region_name)?;
 
         if !(*uplink
             .gateway_private_map
             .get(&gateway_id)
-            .ok_or(anyhow!("gateway_id missing in gateway_private_map"))?
+            .ok_or_else(|| anyhow!("gateway_id missing in gateway_private_map"))?
             || force_gws_private)
             || uplink
                 .gateway_tenant_id_map
                 .get(&gateway_id)
-                .ok_or(anyhow!("gateway_id is missing in gateway_tenant_id_map"))?
+                .ok_or_else(|| anyhow!("gateway_id is missing in gateway_tenant_id_map"))?
                 == tenant_id
         {
             rx_info_set.push(rx_info.clone());
@@ -388,7 +381,7 @@ fn filter_rx_info_by_public_only(uplink: &mut UplinkFrameSet) -> Result<()> {
         if !(*uplink
             .gateway_private_map
             .get(&gateway_id)
-            .ok_or(anyhow!("gateway_id missing in gateway_private_map"))?)
+            .ok_or_else(|| anyhow!("gateway_id missing in gateway_private_map"))?)
         {
             rx_info_set.push(rx_info.clone());
         }

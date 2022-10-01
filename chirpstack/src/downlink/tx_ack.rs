@@ -70,7 +70,7 @@ impl TxAck {
         ctx.decode_phy_payload()?;
 
         if ctx.is_error() {
-            if ctx.is_application_payload() {
+            if ctx.is_application_payload() || ctx.is_mac_only_downlink() {
                 ctx.get_device().await?;
                 ctx.get_device_profile().await?;
                 ctx.get_application().await?;
@@ -126,7 +126,7 @@ impl TxAck {
         let gw_df = &df
             .downlink_frame
             .as_ref()
-            .ok_or(anyhow!("downlink_frame is None"))?;
+            .ok_or_else(|| anyhow!("downlink_frame is None"))?;
 
         // Validate that we don't receive more ack items than downlink items that were
         // sent to the gateway. Receiving less acks is valid, e.g. the gateway might
@@ -262,7 +262,7 @@ impl TxAck {
 
         let mut ds = self.device_session.as_mut().unwrap();
 
-        if ds.mac_version.to_string().starts_with("1.0") {
+        if ds.mac_version().to_string().starts_with("1.0") {
             ds.n_f_cnt_down += 1;
         } else {
             ds.a_f_cnt_down += 1;
@@ -294,7 +294,7 @@ impl TxAck {
         let dp = self.device_profile.as_ref().unwrap();
         let dev = self.device.as_ref().unwrap();
 
-        let mut tags = (&*dp.tags).clone();
+        let mut tags = (*dp.tags).clone();
         tags.extend((*dev.tags).clone());
 
         let pl = integration_pb::LogEvent {
@@ -330,7 +330,7 @@ impl TxAck {
         let dev = self.device.as_ref().unwrap();
         let qi = self.device_queue_item.as_ref().unwrap();
 
-        let mut tags = (&*dp.tags).clone();
+        let mut tags = (*dp.tags).clone();
         tags.extend((*dev.tags).clone());
 
         let downlink_id = self.downlink_frame.as_ref().unwrap().downlink_id;
@@ -384,7 +384,7 @@ impl TxAck {
         let gw_df = df
             .downlink_frame
             .as_ref()
-            .ok_or(anyhow!("downlink_frame is None"))?;
+            .ok_or_else(|| anyhow!("downlink_frame is None"))?;
         let dfi = self.downlink_frame_item.as_ref().unwrap();
         let phy = self.phy_payload.as_mut().unwrap();
 
@@ -415,6 +415,7 @@ impl TxAck {
                     "".to_string()
                 }
             },
+            plaintext_mac_commands: false,
         };
 
         // Log for gateway (with potentially encrypted mac-commands).
@@ -451,6 +452,7 @@ impl TxAck {
             m_type: dfl.m_type,
             dev_addr: dfl.dev_addr.clone(),
             dev_eui: dfl.dev_eui.clone(),
+            plaintext_mac_commands: true,
         };
 
         // Log for device.

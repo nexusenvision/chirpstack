@@ -1,7 +1,55 @@
 use rand::Rng;
+use std::error::Error;
+use std::str::FromStr;
 
 tonic::include_proto!("gw/gw");
 include!(concat!(env!("OUT_DIR"), "/gw/gw.serde.rs"));
+
+#[allow(clippy::from_over_into)]
+impl Into<String> for CodeRate {
+    fn into(self) -> String {
+        match self {
+            CodeRate::CrUndefined => "",
+            CodeRate::Cr45 => "4/5",
+            CodeRate::Cr46 => "4/6",
+            CodeRate::Cr47 => "4/7",
+            CodeRate::Cr48 => "4/8",
+            CodeRate::Cr38 => "3/8",
+            CodeRate::Cr26 => "2/6",
+            CodeRate::Cr14 => "1/4",
+            CodeRate::Cr16 => "1/6",
+            CodeRate::Cr56 => "5/6",
+            CodeRate::CrLi45 => "4/5LI",
+            CodeRate::CrLi46 => "4/6LI",
+            CodeRate::CrLi48 => "4/8LI",
+        }
+        .to_string()
+    }
+}
+
+impl FromStr for CodeRate {
+    type Err = Box<dyn Error>;
+
+    fn from_str(s: &str) -> Result<Self, Box<dyn Error>> {
+        Ok(match s {
+            "4/5" => CodeRate::Cr45,
+            "4/6" | "2/3" => CodeRate::Cr46,
+            "4/7" => CodeRate::Cr47,
+            "4/8" | "2/4" | "1/2" => CodeRate::Cr48,
+            "3/8" => CodeRate::Cr38,
+            "2/6" | "1/3" => CodeRate::Cr26,
+            "1/4" => CodeRate::Cr14,
+            "1/6" => CodeRate::Cr16,
+            "5/6" => CodeRate::Cr56,
+            "4/5LI" => CodeRate::CrLi45,
+            "4/6LI" => CodeRate::CrLi46,
+            "4/8LI" => CodeRate::CrLi48,
+            _ => {
+                return Err("invalid code-rate".into());
+            }
+        })
+    }
+}
 
 #[allow(clippy::from_over_into)]
 impl Into<String> for TxAckStatus {
@@ -35,14 +83,9 @@ impl UplinkFrame {
                                 modulation::Parameters::Lora(LoraModulationInfo {
                                     bandwidth: info.bandwidth * 1000,
                                     spreading_factor: info.spreading_factor,
-                                    code_rate: match info.code_rate_legacy.as_ref() {
-                                        "4/5" => CodeRate::Cr45,
-                                        "2/3" | "4/6" => CodeRate::Cr46,
-                                        "4/7" => CodeRate::Cr47,
-                                        "1/2" | "2/4" | "4/8" => CodeRate::Cr48,
-                                        _ => CodeRate::CrUndefined,
-                                    }
-                                    .into(),
+                                    code_rate: CodeRate::from_str(&info.code_rate_legacy)
+                                        .unwrap_or(CodeRate::CrUndefined)
+                                        .into(),
                                     code_rate_legacy: "".into(),
                                     polarization_inversion: info.polarization_inversion,
                                 })
@@ -51,7 +94,13 @@ impl UplinkFrame {
                                 modulation::Parameters::Fsk(info.clone())
                             }
                             uplink_tx_info_legacy::ModulationInfo::LrFhssModulationInfo(info) => {
-                                modulation::Parameters::LrFhss(info.clone())
+                                modulation::Parameters::LrFhss(LrFhssModulationInfo {
+                                    code_rate: CodeRate::from_str(&info.code_rate_legacy)
+                                        .unwrap_or(CodeRate::CrUndefined)
+                                        .into(),
+                                    code_rate_legacy: "".into(),
+                                    ..info.clone()
+                                })
                             }
                         }),
                     }),
@@ -72,6 +121,8 @@ impl UplinkFrame {
                     fine_time_since_gps_epoch: None,
                     rssi: rx_info.rssi,
                     snr: rx_info.lora_snr as f32,
+                    channel: rx_info.channel,
+                    rf_chain: rx_info.rf_chain,
                     board: rx_info.board,
                     antenna: rx_info.antenna,
                     location: rx_info.location.clone(),
@@ -156,14 +207,7 @@ impl DownlinkFrame {
                                         LoraModulationInfo {
                                             bandwidth: v.bandwidth / 1000,
                                             spreading_factor: v.spreading_factor,
-                                            code_rate_legacy: match v.code_rate() {
-                                                CodeRate::CrUndefined => "",
-                                                CodeRate::Cr45 => "4/5",
-                                                CodeRate::Cr46 => "4/6",
-                                                CodeRate::Cr47 => "4/7",
-                                                CodeRate::Cr48 => "4/8",
-                                            }
-                                            .into(),
+                                            code_rate_legacy: v.code_rate().into(),
                                             polarization_inversion: v.polarization_inversion,
                                             ..Default::default()
                                         },
@@ -232,6 +276,14 @@ impl DownlinkTxAck {
                 self.downlink_id_legacy[14],
                 self.downlink_id_legacy[15],
             ])
+        }
+    }
+}
+
+impl GatewayStats {
+    pub fn v4_migrate(&mut self) {
+        if self.gateway_id.is_empty() {
+            self.gateway_id = hex::encode(&self.gateway_id_legacy);
         }
     }
 }

@@ -218,7 +218,7 @@ impl Data {
         let dp = self.device_profile.as_ref().unwrap();
         let dev = self.device.as_ref().unwrap();
 
-        let mut tags = (&*dp.tags).clone();
+        let mut tags = (*dp.tags).clone();
         tags.extend((*dev.tags).clone());
 
         self.device_info = Some(integration_pb::DeviceInfo {
@@ -442,6 +442,7 @@ impl Data {
         trace!("Logging uplink frame-set");
         let mut ufl: api::UplinkFrameLog = (&self.uplink_frame_set).try_into()?;
         ufl.dev_eui = self.device.as_ref().unwrap().dev_eui.to_string();
+        ufl.plaintext_mac_commands = true;
         framelog::log_uplink_for_device(&ufl).await?;
         Ok(())
     }
@@ -806,7 +807,7 @@ impl Data {
 
         device_queue::delete_item(&qi.id).await?;
 
-        let mut tags = (&*dp.tags).clone();
+        let mut tags = (*dp.tags).clone();
         tags.extend((*dev.tags).clone());
 
         integration::ack_event(

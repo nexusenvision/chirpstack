@@ -98,7 +98,7 @@ async fn test_gateway_filtering() {
     let dk = device_keys::create(device_keys::DeviceKeys {
         dev_eui: dev.dev_eui.clone(),
         nwk_key: AES128Key::from_bytes([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]),
-        dev_nonces: vec![258],
+        dev_nonces: vec![Some(258)],
         ..Default::default()
     })
     .await
@@ -106,6 +106,7 @@ async fn test_gateway_filtering() {
 
     let mut rx_info_a = gw::UplinkRxInfo {
         gateway_id: gw_a.gateway_id.to_string(),
+        location: Some(Default::default()),
         ..Default::default()
     };
     rx_info_a.set_metadata_string("region_name", "eu868");
@@ -113,6 +114,7 @@ async fn test_gateway_filtering() {
 
     let mut rx_info_b = gw::UplinkRxInfo {
         gateway_id: gw_b.gateway_id.to_string(),
+        location: Some(Default::default()),
         ..Default::default()
     };
     rx_info_b.set_metadata_string("region_name", "eu868");
@@ -259,7 +261,7 @@ async fn test_lorawan_10() {
     let dk = device_keys::create(device_keys::DeviceKeys {
         dev_eui: dev.dev_eui.clone(),
         nwk_key: AES128Key::from_bytes([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]),
-        dev_nonces: vec![258],
+        dev_nonces: vec![Some(258)],
         ..Default::default()
     })
     .await
@@ -267,6 +269,7 @@ async fn test_lorawan_10() {
 
     let mut rx_info = gw::UplinkRxInfo {
         gateway_id: gw.gateway_id.to_string(),
+        location: Some(Default::default()),
         ..Default::default()
     };
     rx_info.set_metadata_string("region_name", "eu868");
@@ -902,7 +905,7 @@ async fn test_lorawan_11() {
         dev_eui: dev.dev_eui.clone(),
         nwk_key: AES128Key::from_bytes([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]),
         app_key: AES128Key::from_bytes([16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]),
-        dev_nonces: vec![258],
+        dev_nonces: vec![Some(258)],
         ..Default::default()
     })
     .await
@@ -910,6 +913,7 @@ async fn test_lorawan_11() {
 
     let mut rx_info = gw::UplinkRxInfo {
         gateway_id: gw.gateway_id.to_string(),
+        location: Some(Default::default()),
         ..Default::default()
     };
     rx_info.set_metadata_string("region_name", "eu868");

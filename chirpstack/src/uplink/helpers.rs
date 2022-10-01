@@ -1,3 +1,4 @@
+use std::str::FromStr;
 use std::time::{Duration, SystemTime};
 
 use anyhow::Result;
@@ -12,12 +13,12 @@ pub fn get_uplink_dr(region_name: &str, tx_info: &chirpstack_api::gw::UplinkTxIn
     let mod_info = tx_info
         .modulation
         .as_ref()
-        .ok_or(anyhow!("modulation must not be None"))?;
+        .ok_or_else(|| anyhow!("modulation must not be None"))?;
 
     let mod_params = mod_info
         .parameters
         .as_ref()
-        .ok_or(anyhow!("parameters must not be None"))?;
+        .ok_or_else(|| anyhow!("parameters must not be None"))?;
 
     let dr_modulation = match &mod_params {
         chirpstack_api::gw::modulation::Parameters::Lora(v) => {
@@ -33,7 +34,7 @@ pub fn get_uplink_dr(region_name: &str, tx_info: &chirpstack_api::gw::UplinkTxIn
         }
         chirpstack_api::gw::modulation::Parameters::LrFhss(v) => {
             lrwn::region::DataRateModulation::LrFhss(lrwn::region::LrFhssDataRate {
-                coding_rate: v.code_rate.clone(),
+                coding_rate: v.code_rate().into(),
                 occupied_channel_width: v.operating_channel_width,
             })
         }
@@ -70,7 +71,9 @@ pub fn set_uplink_modulation(
             lrwn::region::DataRateModulation::LrFhss(v) => {
                 gw::modulation::Parameters::LrFhss(gw::LrFhssModulationInfo {
                     operating_channel_width: v.occupied_channel_width,
-                    code_rate: v.coding_rate,
+                    code_rate: gw::CodeRate::from_str(&v.coding_rate)
+                        .map_err(|e| anyhow!("{}", e))?
+                        .into(),
                     // GridSteps: this value can't be derived from a DR?
                     ..Default::default()
                 })

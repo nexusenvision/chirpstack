@@ -1,6 +1,7 @@
 # hidden files
 .*
 !/chirpstack/.rpm
+!/.cargo
 
 # Log files
 *.log
@@ -12,11 +13,7 @@
 **/target
 
 # Certificates
-/chirpstack/configuration/certs/*.crt
-/chirpstack/configuration/certs/*.key
-/chirpstack/configuration/certs/*.trust
-/chirpstack/configuration/certs/*.pem
-/chirpstack/configuration/certs/*.csr
+/chirpstack/configuration/certs/*
 /chirpstack/configuration/private_*.toml
 
 # UI
@@ -25,6 +22,9 @@
 
 # API
 /api/js/node_modules
+/api/python/src/*.egg-info/
+/api/python/src/build/
+/api/python/src/dist/
 
 # Bitbake recipes
 *.bb
